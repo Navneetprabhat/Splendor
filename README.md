@@ -35,7 +35,9 @@ The production output is generated in `dist/`. The Vite config uses a relative b
 
 Merging to `main` triggers the GitHub Pages workflow in `.github/workflows/deploy-pages.yml`.
 
-If the workflow reports that GitHub Pages is not enabled, open repository Settings -> Pages and set Build and deployment Source to GitHub Actions. A fallback static build is also available on the `gh-pages` branch.
+Live site: `https://navneetprabhat.github.io/Splendor/`
+
+The repository also keeps root static assets for the current GitHub Pages branch-root setting. Re-run `npm run build` and copy `dist/assets/index.js` plus `dist/assets/index.css` into `assets/` before publishing app changes.
 
 ## Notes
 

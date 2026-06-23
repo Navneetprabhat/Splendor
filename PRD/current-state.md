@@ -50,6 +50,7 @@ Splendor is a frontend-only browser version of the board game, planned for GitHu
 - Production build via `npm run build`.
 - GitHub Pages deployment workflow added at `.github/workflows/deploy-pages.yml`.
 - Static build has also been pushed to the `gh-pages` branch as a fallback publishing source.
+- Live GitHub Pages URL: `https://navneetprabhat.github.io/Splendor/`.
 
 ## Known Decisions
 
@@ -75,9 +76,7 @@ Splendor is a frontend-only browser version of the board game, planned for GitHu
 - Token-limit handling currently prevents actions that would exceed ten tokens instead of opening a return-token flow.
 - Card and noble data is compact pilot data and should be expanded or verified before calling the component set final.
 - There is no automated test suite yet.
-- GitHub Pages is not enabled in repository settings yet. The first deployment workflow failed with GitHub's "Ensure GitHub Pages has been enabled" error.
-- GitHub Pages is currently serving `main` branch root, which cannot directly run source TSX files.
-- Repository owner/admin should still prefer enabling Pages with Source set to GitHub Actions, but a root static loader workaround is being added for the current branch-root setting.
+- GitHub Pages currently serves committed root static assets from `main`; keep root assets updated when changing the app until Pages is switched fully to the Actions artifact workflow.
 
 ## Update Rule
 

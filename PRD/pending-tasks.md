@@ -49,19 +49,7 @@ Tasks are created here only after the related feature or improvement has been ca
 
 ## In Progress
 
-### PRD-014: Add GitHub Pages deployment workflow
-
-**Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
-
-**Status:** Blocked pending repository owner setting
-
-**Outcome needed:**
-
-- GitHub Pages workflow has been added.
-- Static `dist/` output has also been pushed to the `gh-pages` branch as a fallback.
-- Repository owner/admin must enable GitHub Pages in repository settings before the site can publish.
-- Recommended setting: Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
-- Current repo setting appears to serve `main` branch root, so add a root-compatible static loader and committed built assets as an immediate workaround.
+No tasks are currently in progress.
 
 ## Completed
 
@@ -226,3 +214,16 @@ Tasks are created here only after the related feature or improvement has been ca
 - Moved the action panel to the left, market rows to the center, and player state to the right.
 - Increased card cost readability with larger colored circle plus numeric badge chips.
 - Replaced large reserve-deck controls with small deck tiles inside each level row.
+
+### PRD-014: Add GitHub Pages deployment workflow
+
+**Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
+
+**Status:** Completed on 2026-06-24
+
+**Outcome:**
+
+- Added `.github/workflows/deploy-pages.yml`.
+- Pushed static fallback output to the `gh-pages` branch.
+- Added root-compatible static assets for the current Pages branch-root setting.
+- Verified the live GitHub Pages URL and deployed assets return HTTP 200.
