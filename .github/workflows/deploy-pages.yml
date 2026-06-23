@@ -34,6 +34,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Prepare Pages root files
+        run: |
+          cp index.html dist/index.html
+          cp hero-splendor.webp dist/hero-splendor.webp
+          cp rulebook.md dist/rulebook.md
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
