@@ -48,6 +48,7 @@ Splendor is a frontend-only browser version of the board game, planned for GitHu
 - Action history with player, turn, action details, timestamp, and elapsed seconds.
 - Downloadable JSON action history.
 - Production build via `npm run build`.
+- GitHub Pages deployment workflow added at `.github/workflows/deploy-pages.yml`.
 
 ## Known Decisions
 
@@ -73,7 +74,7 @@ Splendor is a frontend-only browser version of the board game, planned for GitHu
 - Token-limit handling currently prevents actions that would exceed ten tokens instead of opening a return-token flow.
 - Card and noble data is compact pilot data and should be expanded or verified before calling the component set final.
 - There is no automated test suite yet.
-- GitHub Pages deployment automation has not been added yet.
+- GitHub Pages publication depends on the deployment workflow completing successfully on `main`.
 
 ## Update Rule
 

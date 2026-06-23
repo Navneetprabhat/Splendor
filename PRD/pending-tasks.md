@@ -47,20 +47,18 @@ Tasks are created here only after the related feature or improvement has been ca
 - Add focused unit tests for token taking, reserving, buying, noble visits, final round, and winner tie-breaks.
 - Add at least one bot action smoke test per difficulty.
 
+## In Progress
+
 ### PRD-014: Add GitHub Pages deployment workflow
 
 **Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
 
-**Status:** Pending
+**Status:** In Progress
 
 **Outcome needed:**
 
 - Add a GitHub Actions workflow or documented deployment process.
 - Publish the Vite `dist/` build to GitHub Pages.
-
-## In Progress
-
-No tasks are currently in progress.
 
 ## Completed
 

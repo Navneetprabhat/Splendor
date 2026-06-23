@@ -31,6 +31,10 @@ npm run build
 
 The production output is generated in `dist/`. The Vite config uses a relative base path so the build can be hosted on GitHub Pages.
 
+## Deploy
+
+Merging to `main` triggers the GitHub Pages workflow in `.github/workflows/deploy-pages.yml`.
+
 ## Notes
 
 Pilot 1 implements the core browser game loop and rule validation. Remaining known follow-ups are tracked in `PRD/pending-tasks.md`, including a fuller token-return flow for the official ten-token limit and final card/noble data expansion.
