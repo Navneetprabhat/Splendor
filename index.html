@@ -7,6 +7,25 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      const isGitHubPages = window.location.hostname.endsWith("github.io");
+
+      if (isGitHubPages) {
+        const stylesheet = document.createElement("link");
+        stylesheet.rel = "stylesheet";
+        stylesheet.href = "./assets/index.css";
+        document.head.append(stylesheet);
+
+        const appScript = document.createElement("script");
+        appScript.type = "module";
+        appScript.src = "./assets/index.js";
+        document.body.append(appScript);
+      } else {
+        const appScript = document.createElement("script");
+        appScript.type = "module";
+        appScript.src = "/src/main.tsx";
+        document.body.append(appScript);
+      }
+    </script>
   </body>
 </html>

@@ -61,6 +61,7 @@ Tasks are created here only after the related feature or improvement has been ca
 - Static `dist/` output has also been pushed to the `gh-pages` branch as a fallback.
 - Repository owner/admin must enable GitHub Pages in repository settings before the site can publish.
 - Recommended setting: Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
+- Current repo setting appears to serve `main` branch root, so add a root-compatible static loader and committed built assets as an immediate workaround.
 
 ## Completed
 

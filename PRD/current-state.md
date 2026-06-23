@@ -76,7 +76,8 @@ Splendor is a frontend-only browser version of the board game, planned for GitHu
 - Card and noble data is compact pilot data and should be expanded or verified before calling the component set final.
 - There is no automated test suite yet.
 - GitHub Pages is not enabled in repository settings yet. The first deployment workflow failed with GitHub's "Ensure GitHub Pages has been enabled" error.
-- Repository owner/admin needs to enable Pages in GitHub settings, preferably with Source set to GitHub Actions.
+- GitHub Pages is currently serving `main` branch root, which cannot directly run source TSX files.
+- Repository owner/admin should still prefer enabling Pages with Source set to GitHub Actions, but a root static loader workaround is being added for the current branch-root setting.
 
 ## Update Rule
 
