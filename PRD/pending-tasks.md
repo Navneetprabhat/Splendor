@@ -53,12 +53,14 @@ Tasks are created here only after the related feature or improvement has been ca
 
 **Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
 
-**Status:** In Progress
+**Status:** Blocked pending repository owner setting
 
 **Outcome needed:**
 
-- Add a GitHub Actions workflow or documented deployment process.
-- Publish the Vite `dist/` build to GitHub Pages.
+- GitHub Pages workflow has been added.
+- Static `dist/` output has also been pushed to the `gh-pages` branch as a fallback.
+- Repository owner/admin must enable GitHub Pages in repository settings before the site can publish.
+- Recommended setting: Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
 
 ## Completed
 

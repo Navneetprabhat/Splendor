@@ -4,4 +4,5 @@ dist/
 vite.config.js
 vite.config.d.ts
 .vite-dev*.log
+.deploy-gh-pages/
 .DS_Store
