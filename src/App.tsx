@@ -1,22 +1,39 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { gemLabels, gems } from "./game/data";
 import { chooseBotAction } from "./game/bot";
 import {
   applyAction,
-  costAfterBonus,
   createGame,
   exportableGame,
   playerScore,
+  tokenTotal,
 } from "./game/rules";
-import type { Card, Difficulty, GameAction, GameState, Gem, Player, Tier } from "./game/types";
+import type { Card, Difficulty, GameAction, GameState, Gem, Player, Tier, Token } from "./game/types";
 
 type Screen = "landing" | "rulebook" | "single" | "multi" | "game";
 type SelectedCard =
   | { source: "market"; tier: Tier; card: Card }
   | { source: "reserved"; card: Card };
+type MovementCue = {
+  id: string;
+  playerId: string;
+  tokens: Token[];
+  cardColor?: Gem;
+  from: MovementPoint;
+  to: MovementPoint;
+};
+type MovementPoint = {
+  x: number;
+  y: number;
+};
+type UndoSnapshot = {
+  game: GameState;
+  elapsedBeforeAction: number;
+};
 
 const tiers: Tier[] = [1, 2, 3];
 const tokenOrder = [...gems, "gold"] as const;
+const turnKeyFor = (state: GameState) => `${state.turnNumber}-${state.activePlayerIndex}`;
 
 const titleCase = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
@@ -29,19 +46,49 @@ const renderRulebook = (content: string) =>
     return <p key={index}>{line}</p>;
   });
 
-const TokenRow = ({ tokens, compact = false }: { tokens: Record<string, number>; compact?: boolean }) => (
-  <div className="token-row">
-    {tokenOrder.map((token) => (
-      <span className={compact ? "token-stack compact" : "token-stack"} key={token} title={titleCase(token)}>
-        <span className={`coin token-${token}`} />
-        <strong>{tokens[token] ?? 0}</strong>
-      </span>
-    ))}
-  </div>
-);
+const cueId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-const Cost = ({ card, player }: { card: Card; player?: Player }) => {
-  const cost = player ? costAfterBonus(player, card) : card.cost;
+const centerOf = (element: HTMLElement | null, fallback: MovementPoint): MovementPoint => {
+  if (!element) return fallback;
+  const rect = element.getBoundingClientRect();
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  };
+};
+
+const movementCueFor = (
+  state: GameState,
+  action: GameAction,
+  from: MovementPoint,
+  to: MovementPoint,
+): MovementCue => {
+  const player = state.players[state.activePlayerIndex];
+  const base = { id: cueId(), playerId: player.id, tokens: [] as Token[], from, to };
+
+  if (action.type === "TAKE_THREE") {
+    return { ...base, tokens: action.colors };
+  }
+
+  if (action.type === "TAKE_TWO") {
+    return { ...base, tokens: [action.color, action.color] };
+  }
+
+  if (action.type === "RESERVE_MARKET" || action.type === "RESERVE_DECK") {
+    return { ...base, tokens: state.supply.gold > 0 ? ["gold"] : [] };
+  }
+
+  if (action.type === "BUY_MARKET") {
+    const card = state.market[action.tier].find((candidate) => candidate.id === action.cardId);
+    return { ...base, cardColor: card?.color };
+  }
+
+  const card = player.reserved.find((candidate) => candidate.id === action.cardId);
+  return { ...base, cardColor: card?.color };
+};
+
+const Cost = ({ card }: { card: Card }) => {
+  const cost = card.cost;
   return (
     <div className="cost-row">
       {gems.map((gem) =>
@@ -57,16 +104,77 @@ const Cost = ({ card, player }: { card: Card; player?: Player }) => {
   );
 };
 
-const BonusRow = ({ player }: { player: Player }) => (
-  <div className="bonus-row" title="Purchased card bonuses">
-    {gems.map((gem) => (
-      <span className="bonus-stack" key={gem} title={`${gemLabels[gem]} cards`}>
-        <span className={`card-icon card-${gem}`} />
-        <strong>{player.bonuses[gem]}</strong>
-      </span>
-    ))}
+const HoldingMatrix = ({ cue, player }: { cue?: MovementCue; player: Player }) => (
+  <div className="holding-matrix" title="Token and card holdings">
+    <div className="discount-strip" title="Owned card discounts">
+      <span className="discount-spacer" aria-hidden="true" />
+      {gems.map((gem) => (
+        <span className={`holding-token faded token-${gem}`} key={gem} title={`${gemLabels[gem]} coins plus cards`}>
+          {player.tokens[gem] + player.bonuses[gem]}
+        </span>
+      ))}
+      <span className="discount-gold-spacer" aria-hidden="true" />
+    </div>
+    <div className="holdings-board">
+      <div className="holding-label">Coins ({tokenTotal(player.tokens)})</div>
+      <div className="holding-token-row">
+        {tokenOrder.map((token) => {
+          const tokenReceiving = cue?.playerId === player.id && cue.tokens.includes(token);
+          return (
+            <span
+              className={`holding-token stacked-coin token-${token}${tokenReceiving ? " receiving" : ""}`}
+              key={token}
+              title={`${titleCase(token)} tokens`}
+            >
+              {player.tokens[token]}
+            </span>
+          );
+        })}
+      </div>
+      <div className="holding-label">Cards ({player.purchased.length})</div>
+      <div className="holding-card-row">
+        {gems.map((gem) => {
+          const cardReceiving = cue?.playerId === player.id && cue.cardColor === gem;
+          return (
+            <span
+              className={`holding-card stacked-card card-${gem}${cardReceiving ? " receiving" : ""}`}
+              key={gem}
+              title={`${gemLabels[gem]} cards`}
+            >
+              {player.bonuses[gem]}
+            </span>
+          );
+        })}
+        <span className="holding-card-placeholder" aria-hidden="true" />
+      </div>
+    </div>
   </div>
 );
+
+const movementStyle = (cue: MovementCue, index = 0): CSSProperties =>
+  ({
+    "--from-x": `${cue.from.x + index * 8}px`,
+    "--from-y": `${cue.from.y + index * 6}px`,
+    "--to-x": `${cue.to.x}px`,
+    "--to-y": `${cue.to.y}px`,
+    animationDelay: `${index * 45}ms`,
+  }) as CSSProperties;
+
+const MovementOverlay = ({ cue }: { cue?: MovementCue }) => {
+  if (!cue || (cue.tokens.length === 0 && !cue.cardColor)) return null;
+  return (
+    <div className="movement-overlay screen-movement" aria-hidden="true">
+      {cue.tokens.map((token, index) => (
+        <span
+          className={`moving-token token-${token}`}
+          key={`${cue.id}-${token}-${index}`}
+          style={movementStyle(cue, index)}
+        />
+      ))}
+      {cue.cardColor && <span className={`moving-card card-${cue.cardColor}`} style={movementStyle(cue)} />}
+    </div>
+  );
+};
 
 function App() {
   const [screen, setScreen] = useState<Screen>("landing");
@@ -76,34 +184,89 @@ function App() {
   const [game, setGame] = useState<GameState | null>(null);
   const [selectedTokens, setSelectedTokens] = useState<Gem[]>([]);
   const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null);
+  const [selectedPlayerIndex, setSelectedPlayerIndex] = useState(0);
+  const [movementCue, setMovementCue] = useState<MovementCue | undefined>();
+  const [undoStack, setUndoStack] = useState<UndoSnapshot[]>([]);
   const [elapsed, setElapsed] = useState(0);
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
   const [rulebook, setRulebook] = useState("Loading rulebook...");
+  const actionPanelRef = useRef<HTMLElement | null>(null);
+  const tableAreaRef = useRef<HTMLElement | null>(null);
+  const playerHoldingsRef = useRef<HTMLElement | null>(null);
+  const lastTurnKeyRef = useRef<string | undefined>(undefined);
+  const elapsedRef = useRef(0);
 
   const activePlayer = game?.players[game.activePlayerIndex];
   const humanTurn = Boolean(activePlayer && !activePlayer.isBot && !game?.winner);
+  const selectedPlayer = game?.players[selectedPlayerIndex] ?? activePlayer;
+
+  const showMovementCue = (beforeAction: GameState, action: GameAction, nextActivePlayerIndex: number) => {
+    const actingPlayerIndex = beforeAction.activePlayerIndex;
+    const fallbackFrom = { x: window.innerWidth * 0.52, y: window.innerHeight * 0.48 };
+    const fallbackTo = { x: window.innerWidth - 130, y: window.innerHeight * 0.42 };
+    const sourceElement =
+      action.type === "TAKE_THREE" || action.type === "TAKE_TWO"
+        ? actionPanelRef.current
+        : tableAreaRef.current;
+    const cue = movementCueFor(
+      beforeAction,
+      action,
+      centerOf(sourceElement, fallbackFrom),
+      centerOf(playerHoldingsRef.current, fallbackTo),
+    );
+    setSelectedPlayerIndex(actingPlayerIndex);
+    setMovementCue(cue);
+    window.setTimeout(() => {
+      setMovementCue((current) => (current?.id === cue.id ? undefined : current));
+      setSelectedPlayerIndex(nextActivePlayerIndex);
+    }, 520);
+  };
 
   useEffect(() => {
     if (!game || game.winner) return;
-    setElapsed(0);
-    const interval = window.setInterval(() => {
-      setElapsed(Math.floor((Date.now() - game.turnStartedAt) / 1000));
-    }, 500);
-    return () => window.clearInterval(interval);
-  }, [game?.turnNumber, game?.turnStartedAt, game?.winner]);
+    const turnKey = turnKeyFor(game);
+    if (lastTurnKeyRef.current !== turnKey) {
+      lastTurnKeyRef.current = turnKey;
+      setElapsed(0);
+      setIsTimerPaused(false);
+    }
+  }, [game?.turnNumber, game?.activePlayerIndex, game?.winner]);
 
   useEffect(() => {
-    if (!game || !activePlayer?.isBot || game.winner) return;
+    elapsedRef.current = elapsed;
+  }, [elapsed]);
+
+  useEffect(() => {
+    if (!game || game.winner || isTimerPaused) return;
+    const interval = window.setInterval(() => {
+      setElapsed((current) => current + 1);
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [game?.turnNumber, game?.activePlayerIndex, game?.winner, isTimerPaused]);
+
+  useEffect(() => {
+    if (!game || movementCue) return;
+    setSelectedPlayerIndex(game.activePlayerIndex);
+  }, [game?.activePlayerIndex, game?.turnNumber, movementCue]);
+
+  useEffect(() => {
+    if (!game || !activePlayer?.isBot || game.winner || isTimerPaused) return;
     const timeout = window.setTimeout(() => {
       const action = chooseBotAction(game);
       if (!action) {
         setGame({ ...game, message: `${activePlayer.name} has no legal action available.` });
         return;
       }
-      const result = applyAction(game, action, Math.max(1, elapsed));
+      const actionElapsed = Math.max(1, elapsedRef.current);
+      const result = applyAction(game, action, actionElapsed);
       setGame(result.game);
+      if (result.ok) {
+        setUndoStack((current) => [...current, { game, elapsedBeforeAction: actionElapsed }]);
+        showMovementCue(game, action, result.game.activePlayerIndex);
+      }
     }, 900);
     return () => window.clearTimeout(timeout);
-  }, [game, activePlayer, elapsed]);
+  }, [game?.turnNumber, activePlayer?.id, isTimerPaused]);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}rulebook.md`)
@@ -113,14 +276,18 @@ function App() {
   }, []);
 
   const startSingle = () => {
-    setGame(
-      createGame([
-        { name: "Player", isBot: false },
-        { name: `${titleCase(difficulty)} Bot`, isBot: true, difficulty },
-      ]),
-    );
+    const nextGame = createGame([
+      { name: "Player", isBot: false },
+      { name: `${titleCase(difficulty)} Bot`, isBot: true, difficulty },
+    ]);
+    lastTurnKeyRef.current = turnKeyFor(nextGame);
+    setGame(nextGame);
     setSelectedTokens([]);
     setSelectedCard(null);
+    setSelectedPlayerIndex(0);
+    setUndoStack([]);
+    setElapsed(0);
+    setIsTimerPaused(false);
     setScreen("game");
   };
 
@@ -129,20 +296,45 @@ function App() {
       name: name.trim() || `Player ${index + 1}`,
       isBot: false,
     }));
-    setGame(createGame(players));
+    const nextGame = createGame(players);
+    lastTurnKeyRef.current = turnKeyFor(nextGame);
+    setGame(nextGame);
     setSelectedTokens([]);
     setSelectedCard(null);
+    setSelectedPlayerIndex(0);
+    setUndoStack([]);
+    setElapsed(0);
+    setIsTimerPaused(false);
     setScreen("game");
   };
 
   const perform = (action: GameAction) => {
     if (!game || !humanTurn) return;
-    const result = applyAction(game, action, elapsed);
+    const actionElapsed = elapsed;
+    const result = applyAction(game, action, actionElapsed);
     setGame(result.game);
     if (result.ok) {
+      setUndoStack((current) => [...current, { game, elapsedBeforeAction: actionElapsed }]);
       setSelectedTokens([]);
       setSelectedCard(null);
+      showMovementCue(game, action, result.game.activePlayerIndex);
     }
+  };
+
+  const undoLastAction = () => {
+    if (undoStack.length === 0) return;
+    const snapshot = undoStack[undoStack.length - 1];
+    const restored = structuredClone(snapshot.game);
+    restored.message = "Last action undone.";
+    const restoredElapsed = snapshot.elapsedBeforeAction + elapsed;
+    lastTurnKeyRef.current = turnKeyFor(restored);
+    setUndoStack((current) => current.slice(0, -1));
+    setGame(restored);
+    setSelectedTokens([]);
+    setSelectedCard(null);
+    setMovementCue(undefined);
+    setSelectedPlayerIndex(restored.activePlayerIndex);
+    setElapsed(restoredElapsed);
   };
 
   const downloadLog = () => {
@@ -254,12 +446,8 @@ function App() {
       <main className="game-shell">
         <header className="game-topbar">
           <div className="turn-status">
-            <strong>Turn {game.round}.{activePlayer.turnsTaken + 1}</strong>
+            <strong>Turn {game.round}.{game.activePlayerIndex + 1}</strong>
             <span>{activePlayer.isBot ? `${activePlayer.name} move` : "your move"}</span>
-          </div>
-          <div className="top-supply">
-            <span>supply</span>
-            <TokenRow tokens={game.supply} compact />
           </div>
           <div className="top-nobles">
             <span>nobles</span>
@@ -278,6 +466,12 @@ function App() {
             <button className="ghost-button" onClick={downloadLog}>
               Download JSON
             </button>
+            <button className="ghost-button" onClick={() => setIsTimerPaused((current) => !current)}>
+              {isTimerPaused ? "Resume" : "Pause"}
+            </button>
+            <button className="ghost-button" disabled={undoStack.length === 0} onClick={undoLastAction}>
+              Undo
+            </button>
             <strong className="timer-readout">{elapsed}s</strong>
           </div>
         </header>
@@ -286,7 +480,7 @@ function App() {
         <section className="message-line">{game.message}</section>
 
         <section className="board-layout">
-          <aside className="panel action-panel">
+          <aside className="panel action-panel" ref={actionPanelRef}>
             <div className="action-head">
               <h2>Action</h2>
               <span>{humanTurn ? "Your turn" : "Bot turn"}</span>
@@ -353,7 +547,7 @@ function App() {
                     <strong>{selectedCard.card.points}</strong>
                     <span>{selectedCard.source === "market" ? `Level ${selectedCard.tier}` : "Reserved"}</span>
                   </div>
-                  <Cost card={selectedCard.card} player={activePlayer} />
+                  <Cost card={selectedCard.card} />
                 </div>
               ) : (
                 <p>Select a card on the table.</p>
@@ -406,7 +600,6 @@ function App() {
                 card={card}
                 compact
                 disabled={!humanTurn}
-                player={activePlayer}
                 selected={selectedCard?.source === "reserved" && selectedCard.card.id === card.id}
                 key={card.id}
                 onSelect={() => setSelectedCard({ source: "reserved", card })}
@@ -426,7 +619,7 @@ function App() {
             </div>
           </aside>
 
-          <section className="table-area">
+          <section className="table-area" ref={tableAreaRef}>
             <div className="market">
               {tiers.map((tier) => (
                 <section className="tier" key={tier}>
@@ -444,7 +637,6 @@ function App() {
                     {game.market[tier].map((card) => (
                       <CardView
                         card={card}
-                        player={activePlayer}
                         disabled={!humanTurn}
                         selected={selectedCard?.source === "market" && selectedCard.card.id === card.id}
                         key={card.id}
@@ -460,28 +652,52 @@ function App() {
           <aside className="panel player-panel">
             <div className="player-tabs">
               {game.players.map((player, index) => (
-                <span className={index === game.activePlayerIndex ? "player-tab active" : "player-tab"} key={player.id}>
-                  {player.name}
-                </span>
+                <button
+                  className={[
+                    "player-tab",
+                    index === selectedPlayerIndex ? "active" : "",
+                    index === game.activePlayerIndex ? "current-turn" : "",
+                  ].filter(Boolean).join(" ")}
+                  key={player.id}
+                  onClick={() => setSelectedPlayerIndex(index)}
+                  type="button"
+                >
+                  <span className="player-tab-name">{player.name}</span>
+                  <span className="player-tab-stats">
+                    <span className="tab-token-total" title="Total tokens">
+                      {tokenTotal(player.tokens)}
+                    </span>
+                    <span className="tab-card-total" title="Total purchased cards">
+                      {player.purchased.length}
+                    </span>
+                  </span>
+                </button>
               ))}
             </div>
-            {game.players.map((player, index) => (
-              <article className={index === game.activePlayerIndex ? "player active" : "player"} key={player.id}>
+            {selectedPlayer && (
+              <article
+                className={selectedPlayer.id === activePlayer.id ? "player active" : "player"}
+                key={selectedPlayer.id}
+                ref={playerHoldingsRef}
+              >
                 <div className="player-heading">
-                  <strong>{player.name}</strong>
-                  <span><strong>{playerScore(player)}</strong> prestige</span>
+                  <strong>{selectedPlayer.name}</strong>
+                  <span><strong>{playerScore(selectedPlayer)}</strong> prestige</span>
                 </div>
-                <h3>Gems</h3>
-                <TokenRow tokens={player.tokens} compact />
-                <h3>Cards</h3>
-                <BonusRow player={player} />
+                <h3>Holdings</h3>
+                <HoldingMatrix
+                  cue={movementCue?.playerId === selectedPlayer.id ? movementCue : undefined}
+                  player={selectedPlayer}
+                />
                 <small>
-                  Cards {player.purchased.length} | Reserved {player.reserved.length} | Turns {player.turnsTaken}
+                  Cards {selectedPlayer.purchased.length} | Reserved {selectedPlayer.reserved.length} | Turns{" "}
+                  {selectedPlayer.turnsTaken}
                 </small>
               </article>
-            ))}
+            )}
           </aside>
         </section>
+        <MovementOverlay cue={movementCue} />
       </main>
     );
   }
@@ -514,14 +730,12 @@ function App() {
 
 function CardView({
   card,
-  player,
   compact = false,
   disabled = false,
   selected = false,
   onSelect,
 }: {
   card: Card;
-  player: Player;
   compact?: boolean;
   disabled?: boolean;
   selected?: boolean;
@@ -542,7 +756,7 @@ function CardView({
         <strong>{card.points}</strong>
         <span className={`card-icon card-${card.color}`} />
       </div>
-      <Cost card={card} player={player} />
+      <Cost card={card} />
     </button>
   );
 }

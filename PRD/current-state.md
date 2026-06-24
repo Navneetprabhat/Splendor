@@ -26,15 +26,23 @@ Splendor is a frontend-only browser version of the board game, planned for GitHu
 - 1 v 1 Player vs Bot game mode.
 - Local multiplayer setup for 2 to 4 named players.
 - Game state model for players, tokens, cards, nobles, turns, market, decks, reserved cards, and action history.
+- Development-card data now contains the full 90-card base deck: 40 level 1, 30 level 2, and 20 level 3 cards.
 - Compact color-first board UI with compressed spacing for desktop play.
 - Mockup-aligned game layout with top strip, left action panel, center market, and right player panel.
-- Top strip displays turn state, supply, nobles, controls, and elapsed seconds.
+- Turn labels use round and active-player position, such as `1.1`, `1.2`, `1.3`, then `2.1`.
+- Top strip displays turn state, nobles, controls, and elapsed seconds.
+- Right player panel shows one selected player at a time and defaults to the active player on turn changes.
 - Market and reserved cards are selected directly from the board instead of using per-card action buttons.
 - Buy and Reserve commands live in the action panel for the selected card.
 - Each level row starts with a small deck tile for reserving from the deck.
 - Card costs use larger colored cost circles with small numeric count badges.
-- Player token holdings use circular coin indicators with counts.
-- Player card bonuses use rectangular color indicators with counts.
+- Visible card costs show printed costs only; discounts are applied during affordability and payment.
+- Player tabs show total tokens and total purchased-card counts.
+- Player holdings use a reference-style panel with aligned faded per-color coin-plus-card sums, labeled Coins/Cards rows, stacked coin piles, and stacked vertical card piles.
+- Selected player header keeps prestige text contained inside the right panel.
+- Successful token-taking, reserving, and card-buying actions show a short board-to-holdings movement animation.
+- Active turn timer can be paused and resumed.
+- Undo restores the previous game state and adds elapsed post-action time back onto the restored player's current timer.
 - Action panel uses graphic token/card controls for take, buy, and reserve actions.
 - Core actions:
   - Take three different gems.
@@ -67,6 +75,7 @@ Splendor is a frontend-only browser version of the board game, planned for GitHu
 - Pilot 1 local multiplayer will support 2 to 4 players.
 - Pilot 1 will include a fetched static rulebook file.
 - Pilot 1 will include player turn timers and downloadable JSON action history.
+- Visible cards display printed costs while discount-aware buying remains part of the rules model.
 - Rulebook content is repo-owned explanatory text, not copied proprietary rulebook text.
 - Agent support is planned for a later stage.
 - New feature discussions should be captured in the PRD before implementation starts.
@@ -74,7 +83,7 @@ Splendor is a frontend-only browser version of the board game, planned for GitHu
 ## Known Gaps
 
 - Token-limit handling currently prevents actions that would exceed ten tokens instead of opening a return-token flow.
-- Card and noble data is compact pilot data and should be expanded or verified before calling the component set final.
+- Noble data and detailed component-data audit should be verified before calling the component set final.
 - There is no automated test suite yet.
 - GitHub Pages currently serves committed root static assets from `main`; keep root assets updated when changing the app until Pages is switched fully to the Actions artifact workflow.
 

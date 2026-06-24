@@ -11,6 +11,22 @@ Tasks are created here only after the related feature or improvement has been ca
 
 ## Pending
 
+### PRD-023: Revamp action-taking user flow
+
+**Source:** `PRD/new-features-and-improvements.md` - Action Flow Revamp
+
+**Status:** Pending
+
+**Outcome needed:**
+
+- Add prominent active-turn banner inside the action panel.
+- Convert action controls into a guided step-based flow.
+- Show only relevant controls for the selected action type.
+- Add clear helper and validation text for incomplete actions.
+- Make primary action buttons specific to the pending action.
+- Visually distinguish bot turns from human turns.
+- Highlight selectable gems/cards based on the active action mode.
+
 ### PRD-011: Add official token-return flow
 
 **Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
@@ -24,7 +40,7 @@ Tasks are created here only after the related feature or improvement has been ca
 - Record returned tokens in the action history.
 - Apply the same behavior for bot turns.
 
-### PRD-012: Expand and verify card and noble data
+### PRD-012: Verify card and noble data
 
 **Source:** `PRD/new-features-and-improvements.md` - Core Game Foundation
 
@@ -33,8 +49,8 @@ Tasks are created here only after the related feature or improvement has been ca
 **Outcome needed:**
 
 - Decide the final source of card and noble data.
-- Expand the current pilot dataset if needed.
-- Verify costs, points, colors, and noble requirements.
+- Audit card costs, points, colors, and noble requirements against the selected source.
+- Confirm the full 90-card development deck and 10 nobles are final.
 
 ### PRD-013: Add automated tests for game rules
 
@@ -214,6 +230,87 @@ No tasks are currently in progress.
 - Moved the action panel to the left, market rows to the center, and player state to the right.
 - Increased card cost readability with larger colored circle plus numeric badge chips.
 - Replaced large reserve-deck controls with small deck tiles inside each level row.
+
+### PRD-017: Add full 90-card development deck
+
+**Source:** `PRD/new-features-and-improvements.md` - Full Base Development Deck
+
+**Status:** Completed on 2026-06-24
+
+**Outcome:**
+
+- Replaced compact pilot card data with 90 development cards.
+- Verified tier counts are 40, 30, and 20.
+- Verified total card count is 90.
+- Rebuilt static assets for local and GitHub Pages compatibility.
+
+### PRD-018: Polish board interaction details
+
+**Source:** `PRD/new-features-and-improvements.md` - Board Interaction Polish
+
+**Status:** Completed on 2026-06-24
+
+**Outcome:**
+
+- Fixed turn labels to use round and active player position.
+- Changed the right-side panel to show one selected player, defaulting to the active player on turn change.
+- Removed supply from the top noble strip.
+- Added 0.5 second holdings animation after successful take, reserve, and buy actions.
+- Updated holdings visuals to centered numeric coin circles and card rectangles.
+
+### PRD-019: Add board controls and readability polish
+
+**Source:** `PRD/new-features-and-improvements.md` - Board Controls and Readability Polish
+
+**Status:** Completed on 2026-06-24
+
+**Outcome:**
+
+- Increased cost chip sizes.
+- Added token/card totals and aligned holdings in the player panel.
+- Kept visible card costs printed while preserving discount-aware buying.
+- Added pause/resume timer control.
+- Added undo with cumulative elapsed timing.
+- Animated gained tokens/cards from the board/action area to player holdings.
+
+### PRD-020: Match player holdings reference layout
+
+**Source:** `PRD/new-features-and-improvements.md` - Reference-Style Player Holdings Panel
+
+**Status:** Completed on 2026-06-24
+
+**Outcome:**
+
+- Added faded discount strip above player holdings.
+- Added labeled Coins and Cards rows.
+- Aligned six token circles above five matching vertical card rectangles.
+- Kept counts centered inside all holding markers.
+
+### PRD-021: Refine player holdings alignment and top sums
+
+**Source:** `PRD/new-features-and-improvements.md` - Reference-Style Player Holdings Panel
+
+**Status:** Completed on 2026-06-24
+
+**Outcome:**
+
+- Reduced holding coin/card marker widths slightly.
+- Aligned main holdings rows more closely with the faded top strip.
+- Changed the faded top strip to show each color's coin plus card sum.
+
+### PRD-022: Improve holdings panel clarity and stacked visuals
+
+**Source:** `PRD/new-features-and-improvements.md` - Holdings Panel Clarity Pass
+
+**Status:** Completed on 2026-06-25
+
+**Outcome:**
+
+- Kept prestige text contained in the selected player panel.
+- Aligned faded per-color totals above matching color columns.
+- Added stacked visuals for card holdings.
+- Added stacked/piled visuals for coin holdings.
+- Ensured the holdings block fits inside the right panel without clipping.
 
 ### PRD-014: Add GitHub Pages deployment workflow
 
