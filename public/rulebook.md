@@ -47,4 +47,4 @@ When any player reaches at least 15 prestige points, finish the current round so
 
 ## Player Count Note
 
-The base board game supports 2 to 4 players. Pilot 1 follows that range for local multiplayer.
+The base board game supports 2 to 4 players. Version 1 follows that range for local multiplayer.

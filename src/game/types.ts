@@ -67,10 +67,10 @@ export interface GameState {
 }
 
 export type GameAction =
-  | { type: "TAKE_THREE"; colors: Gem[] }
-  | { type: "TAKE_TWO"; color: Gem }
-  | { type: "RESERVE_MARKET"; tier: Tier; cardId: string }
-  | { type: "RESERVE_DECK"; tier: Tier }
+  | { type: "TAKE_THREE"; colors: Gem[]; returnedTokens?: Token[] }
+  | { type: "TAKE_TWO"; color: Gem; returnedTokens?: Token[] }
+  | { type: "RESERVE_MARKET"; tier: Tier; cardId: string; returnedTokens?: Token[] }
+  | { type: "RESERVE_DECK"; tier: Tier; returnedTokens?: Token[] }
   | { type: "BUY_MARKET"; tier: Tier; cardId: string }
   | { type: "BUY_RESERVED"; cardId: string };
 

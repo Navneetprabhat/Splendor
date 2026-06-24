@@ -1,8 +1,8 @@
 # Splendor
 
-A frontend-only Splendor pilot with single-player Player vs Bot and local multiplayer modes.
+Version 1 of a frontend-only Splendor game with single-player Player vs Bot and local multiplayer modes.
 
-## Current Pilot
+## Current Version
 
 - Vite + React + TypeScript app.
 - Minimalistic tabletop-inspired UI.
@@ -11,7 +11,10 @@ A frontend-only Splendor pilot with single-player Player vs Bot and local multip
 - Multiplayer: local 2 to 4 player setup with player names.
 - Full 90-card base development deck with 40 level 1, 30 level 2, and 20 level 3 cards.
 - Mockup-aligned compact board with a top status strip, left action panel, center market, selectable cards, small deck tiles, and a one-player-at-a-time holdings panel.
+- Guided action panel with clear active-turn banner, contextual Take 3 / Take 2 / Buy / Reserve controls, and selectable board highlights.
+- Recent actions are collapsed by default, and token-taking actions support return-token selection when crossing ten tokens.
 - Turn labels follow round/player order, such as `1.1`, `1.2`, `1.3`, then `2.1`.
+- Final-round winner determination waits until the current table round is complete.
 - Player holdings use a reference-style panel: aligned faded per-color sums, labeled Coins/Cards rows, stacked coin piles, and stacked vertical card piles.
 - Visible cards show printed costs; discounts are applied only when validating and paying for buys.
 - Short board-to-holdings movement animation after successful token/card actions.
@@ -46,4 +49,4 @@ The repository also keeps root static assets for the current GitHub Pages branch
 
 ## Notes
 
-Pilot 1 implements the core browser game loop and rule validation. Remaining known follow-ups are tracked in `PRD/pending-tasks.md`, including a fuller token-return flow for the official ten-token limit and final component-data audit.
+Version 1 implements the core browser game loop and rule validation. Remaining known follow-ups are tracked in `PRD/pending-tasks.md`, including final component-data audit and automated tests.

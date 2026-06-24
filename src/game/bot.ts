@@ -1,8 +1,9 @@
 import { gems } from "./data";
 import { actionLabel, canAffordCard, tokenTotal } from "./rules";
-import type { Card, GameAction, GameState, Gem, Player, Tier } from "./types";
+import type { Card, GameAction, GameState, Gem, Player, Tier, Token, Tokens } from "./types";
 
 const tiers: Tier[] = [1, 2, 3];
+const tokenOrder = [...gems, "gold"] as Token[];
 
 const combos = (items: Gem[], size: number): Gem[][] => {
   if (size === 0) return [[]];
@@ -12,6 +13,28 @@ const combos = (items: Gem[], size: number): Gem[][] => {
     ...combos(tail, size - 1).map((combo) => [head, ...combo]),
     ...combos(tail, size),
   ];
+};
+
+const returnedTokensFor = (player: Player, gained: Partial<Tokens>): Token[] | undefined => {
+  const projected = { ...player.tokens };
+  tokenOrder.forEach((token) => {
+    projected[token] += gained[token] ?? 0;
+  });
+
+  const excess = tokenTotal(projected) - 10;
+  if (excess <= 0) return undefined;
+
+  const returned: Token[] = [];
+  const returnPriority = [...gems].sort((a, b) => projected[b] - projected[a]);
+  for (const token of [...returnPriority, "gold"] as Token[]) {
+    while (projected[token] > 0 && returned.length < excess) {
+      projected[token] -= 1;
+      returned.push(token);
+    }
+    if (returned.length === excess) break;
+  }
+
+  return returned;
 };
 
 const legalActions = (state: GameState): GameAction[] => {
@@ -28,28 +51,32 @@ const legalActions = (state: GameState): GameAction[] => {
     if (canAffordCard(player, card)) actions.push({ type: "BUY_RESERVED", cardId: card.id });
   });
 
-  const tokenCount = tokenTotal(player.tokens);
-  if (player.reserved.length < 3 && tokenCount + (state.supply.gold > 0 ? 1 : 0) <= 10) {
+  if (player.reserved.length < 3) {
+    const returnedTokens = returnedTokensFor(player, { gold: state.supply.gold > 0 ? 1 : 0 });
     tiers.forEach((tier) => {
       state.market[tier].forEach((card) => {
-        if (card.points >= 2 || tier >= 2) actions.push({ type: "RESERVE_MARKET", tier, cardId: card.id });
+        if (card.points >= 2 || tier >= 2) {
+          actions.push({ type: "RESERVE_MARKET", tier, cardId: card.id, returnedTokens });
+        }
       });
-      if (state.decks[tier].length > 0 && tier >= 2) actions.push({ type: "RESERVE_DECK", tier });
+      if (state.decks[tier].length > 0 && tier >= 2) actions.push({ type: "RESERVE_DECK", tier, returnedTokens });
     });
   }
 
-  if (tokenCount + 3 <= 10) {
-    combos(
-      gems.filter((gem) => state.supply[gem] > 0),
-      3,
-    ).forEach((colors) => actions.push({ type: "TAKE_THREE", colors }));
-  }
-
-  if (tokenCount + 2 <= 10) {
-    gems.forEach((gem) => {
-      if (state.supply[gem] >= 4) actions.push({ type: "TAKE_TWO", color: gem });
+  const availableGems = gems.filter((gem) => state.supply[gem] > 0);
+  ([1, 2, 3] as const).forEach((size) => {
+    combos(availableGems, size).forEach((colors) => {
+      const gained = colors.reduce((tokens, color) => {
+        tokens[color] = (tokens[color] ?? 0) + 1;
+        return tokens;
+      }, {} as Partial<Tokens>);
+      actions.push({ type: "TAKE_THREE", colors, returnedTokens: returnedTokensFor(player, gained) });
     });
-  }
+  });
+
+  gems.forEach((gem) => {
+    if (state.supply[gem] >= 4) actions.push({ type: "TAKE_TWO", color: gem, returnedTokens: returnedTokensFor(player, { [gem]: 2 }) });
+  });
 
   return actions;
 };

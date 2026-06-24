@@ -2,7 +2,7 @@
 
 ## Product Summary
 
-Splendor is a frontend-only browser version of the board game, planned for GitHub Pages hosting. Pilot 1 supports single-player Player vs Bot and local multiplayer.
+Splendor is a frontend-only browser version of the board game, planned for GitHub Pages hosting. Version 1 supports single-player Player vs Bot and local multiplayer.
 
 ## Repository State
 
@@ -33,7 +33,14 @@ Splendor is a frontend-only browser version of the board game, planned for GitHu
 - Top strip displays turn state, nobles, controls, and elapsed seconds.
 - Right player panel shows one selected player at a time and defaults to the active player on turn changes.
 - Market and reserved cards are selected directly from the board instead of using per-card action buttons.
-- Buy and Reserve commands live in the action panel for the selected card.
+- Action panel has an active-turn command banner with player name, turn label, and elapsed seconds.
+- Human turns use a guided action flow for Take 3, Take 2, Buy, and Reserve.
+- The action panel shows only controls relevant to the selected action mode, with helper text and a contextual confirm button.
+- Recent Actions is collapsed by default to preserve action-panel space.
+- Bot turns show a distinct bot-thinking state while the automated player chooses a move.
+- Completed games show a game-complete action panel state instead of bot-thinking controls.
+- Buy and Reserve commands live in the action panel for the selected card or selected deck tile.
+- Market cards, reserved cards, deck tiles, and gem controls highlight only when they are relevant to the active action mode.
 - Each level row starts with a small deck tile for reserving from the deck.
 - Card costs use larger colored cost circles with small numeric count badges.
 - Visible card costs show printed costs only; discounts are applied during affordability and payment.
@@ -45,13 +52,15 @@ Splendor is a frontend-only browser version of the board game, planned for GitHu
 - Undo restores the previous game state and adds elapsed post-action time back onto the restored player's current timer.
 - Action panel uses graphic token/card controls for take, buy, and reserve actions.
 - Core actions:
-  - Take three different gems.
+  - Take one to three different gems.
   - Take two gems of the same color when at least four are available.
   - Reserve a visible market card.
   - Reserve the top card from a deck.
   - Buy a visible market card.
   - Buy a reserved card.
-- Rule validation for affordability, reserve limits, token availability, token cap prevention, noble visits, final round, winner, and tie-break by fewer purchased cards.
+- Token-gaining actions can temporarily exceed ten tokens, then require returned-token selection before the turn can be confirmed.
+- Rule validation for affordability, reserve limits, token availability, token return handling, noble visits, final round, winner, and tie-break by fewer purchased cards.
+- Final-round winner determination runs after the last player in table order completes the current round.
 - Per-turn elapsed seconds timer.
 - Action history with player, turn, action details, timestamp, and elapsed seconds.
 - Downloadable JSON action history.
@@ -63,18 +72,18 @@ Splendor is a frontend-only browser version of the board game, planned for GitHu
 ## Known Decisions
 
 - The product will support both single-player and multiplayer modes.
-- Pilot 1 will be a frontend-only browser app hosted on GitHub Pages.
-- Pilot 1 will use Vite + React + TypeScript with plain CSS.
-- Pilot 1 will use a minimalistic and aesthetic visual direction.
-- Pilot 1 will model official Splendor rules from the start.
-- Pilot 1 single-player mode will be 1 v 1: Player vs Bot.
-- Pilot 1 bot difficulties will be Easy, Medium, and Hard.
+- Version 1 will be a frontend-only browser app hosted on GitHub Pages.
+- Version 1 will use Vite + React + TypeScript with plain CSS.
+- Version 1 will use a minimalistic and aesthetic visual direction.
+- Version 1 will model official Splendor rules from the start.
+- Version 1 single-player mode will be 1 v 1: Player vs Bot.
+- Version 1 bot difficulties will be Easy, Medium, and Hard.
 - Easy bot will make random legal moves.
 - Medium bot will use short-term greedy choices.
 - Hard bot will use a stronger strategic heuristic.
-- Pilot 1 local multiplayer will support 2 to 4 players.
-- Pilot 1 will include a fetched static rulebook file.
-- Pilot 1 will include player turn timers and downloadable JSON action history.
+- Version 1 local multiplayer will support 2 to 4 players.
+- Version 1 will include a fetched static rulebook file.
+- Version 1 will include player turn timers and downloadable JSON action history.
 - Visible cards display printed costs while discount-aware buying remains part of the rules model.
 - Rulebook content is repo-owned explanatory text, not copied proprietary rulebook text.
 - Agent support is planned for a later stage.
@@ -82,7 +91,6 @@ Splendor is a frontend-only browser version of the board game, planned for GitHu
 
 ## Known Gaps
 
-- Token-limit handling currently prevents actions that would exceed ten tokens instead of opening a return-token flow.
 - Noble data and detailed component-data audit should be verified before calling the component set final.
 - There is no automated test suite yet.
 - GitHub Pages currently serves committed root static assets from `main`; keep root assets updated when changing the app until Pages is switched fully to the Actions artifact workflow.

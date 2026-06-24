@@ -936,13 +936,24 @@ small {
   background: linear-gradient(135deg, #3a3734, #191715);
 }
 
-.game-card.selected-card {
+.game-card.selected-card,
+.deck-tile.selected-card {
   outline: 3px solid #d7b85d;
   outline-offset: 1px;
 }
 
+.game-card.selectable-card,
+.deck-tile.selectable-card {
+  border-color: #d2ad52;
+  box-shadow: 0 10px 22px rgba(42, 35, 27, 0.08), inset 0 0 0 2px rgba(215, 184, 93, 0.26);
+}
+
+.game-card.unavailable-card {
+  filter: saturate(0.62);
+}
+
 .game-card:disabled {
-  opacity: 0.72;
+  opacity: 0.58;
 }
 
 .mini-button {
@@ -996,6 +1007,67 @@ small {
   background: #fffdf8;
 }
 
+.two-token-button.selected {
+  border-color: #d2ad52;
+  background: #fff4cf;
+  box-shadow: inset 0 0 0 2px rgba(215, 184, 93, 0.32);
+}
+
+.two-token-button strong {
+  margin-left: 2px;
+  font-size: 0.78rem;
+}
+
+.turn-command {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid #d3b15a;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #fff4cf, #fffaf0);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.58);
+}
+
+.turn-command.bot-turn {
+  border-color: #9eb3b8;
+  background: linear-gradient(135deg, #edf4f4, #fffaf0);
+}
+
+.turn-command.complete-turn {
+  border-color: #7e9b6b;
+  background: linear-gradient(135deg, #eef7e9, #fffaf0);
+}
+
+.turn-command > div {
+  display: grid;
+  gap: 2px;
+}
+
+.turn-command span {
+  color: #716251;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.turn-command strong {
+  color: #211d1b;
+  font-size: 1rem;
+  line-height: 1.05;
+}
+
+.turn-command-meta {
+  flex: 0 0 auto;
+  justify-items: end;
+}
+
+.turn-command-meta strong {
+  color: #b68213;
+}
+
 .action-head,
 .selected-actions {
   display: flex;
@@ -1010,12 +1082,18 @@ small {
   gap: 6px;
 }
 
+.action-mode-grid.guided {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .mode-button {
   min-height: 34px;
+  padding: 6px 4px;
   border: 1px solid #d6c7ae;
   border-radius: 8px;
   background: #fffdf8;
   color: #5b5146;
+  font-size: 0.84rem;
   font-weight: 800;
 }
 
@@ -1023,6 +1101,7 @@ small {
   border-color: #d2ad52;
   background: #fff4cf;
   color: #6d4700;
+  box-shadow: inset 0 0 0 2px rgba(215, 184, 93, 0.28);
 }
 
 .action-head h2,
@@ -1043,6 +1122,118 @@ small {
   border: 1px solid #e0d2bc;
   border-radius: 8px;
   background: #fffdf8;
+}
+
+.guided-step {
+  gap: 9px;
+}
+
+.step-heading {
+  display: grid;
+  gap: 3px;
+}
+
+.step-heading span {
+  color: #8b7c6b;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.step-heading strong {
+  color: #2c241d;
+  font-size: 0.84rem;
+  line-height: 1.25;
+}
+
+.selection-preview {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 7px;
+  border: 1px dashed #d8c8ae;
+  border-radius: 8px;
+  background: #f8f1e5;
+}
+
+.selection-preview span:not(.coin) {
+  color: #8b7c6b;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.selection-preview .coin {
+  width: 22px;
+  height: 22px;
+}
+
+.guided-two {
+  margin-bottom: 0;
+}
+
+.selection-card-area,
+.selection-summary {
+  display: grid;
+  gap: 7px;
+}
+
+.selection-card-area p {
+  margin: 0;
+  color: #716251;
+  font-size: 0.86rem;
+}
+
+.selection-summary {
+  padding: 8px;
+  border: 1px dashed #c8b68e;
+  border-radius: 8px;
+  background: #f7efe2;
+}
+
+.selection-summary span {
+  color: #716251;
+  font-size: 0.78rem;
+}
+
+.return-block {
+  background: #fff8e4;
+}
+
+.return-token-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.return-token {
+  min-height: 38px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid #d8c8ae;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: #211d1b;
+  font-weight: 900;
+}
+
+.return-token .coin {
+  width: 19px;
+  height: 19px;
+}
+
+.return-token strong {
+  font-size: 0.76rem;
+  line-height: 1;
+}
+
+.return-token.selected {
+  border-color: #c79d35;
+  background: #f4dfaa;
+  box-shadow: inset 0 0 0 2px rgba(199, 157, 53, 0.32);
 }
 
 .selected-card-preview {
@@ -1096,6 +1287,21 @@ small {
   background: linear-gradient(135deg, #3a3734, #191715);
 }
 
+.action-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid #e0d2bc;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.action-footer small {
+  grid-column: 1 / -1;
+  line-height: 1.25;
+}
+
 .icon-command {
   flex: 1;
   min-height: 36px;
@@ -1134,6 +1340,70 @@ small {
   padding: 7px 10px;
 }
 
+.compact-clear {
+  min-height: 34px;
+  padding: 7px 10px;
+}
+
+.bot-thinking {
+  justify-items: center;
+  padding: 18px 10px;
+  text-align: center;
+}
+
+.bot-thinking p {
+  margin: 0;
+  color: #716251;
+  font-size: 0.86rem;
+}
+
+.game-complete {
+  justify-items: center;
+  padding: 18px 10px;
+  text-align: center;
+}
+
+.game-complete p {
+  margin: 0;
+  color: #716251;
+  font-size: 0.86rem;
+}
+
+.thinking-dots {
+  display: inline-flex;
+  gap: 5px;
+  min-height: 10px;
+}
+
+.thinking-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #6a858b;
+  animation: thinking-dot 900ms ease-in-out infinite;
+}
+
+.thinking-dots span:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.thinking-dots span:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+@keyframes thinking-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
 .action-log {
   display: grid;
   gap: 5px;
@@ -1148,6 +1418,29 @@ small {
   border-radius: 8px;
   background: #fffdf8;
   border: 1px solid #e5d8c2;
+}
+
+.recent-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.recent-actions summary {
+  cursor: pointer;
+  list-style-position: inside;
+  padding: 7px 8px;
+  border: 1px solid #e0d2bc;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: #5b5146;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.recent-actions[open] summary {
+  margin-bottom: 6px;
+  border-color: #d2ad52;
+  background: #fff4cf;
 }
 
 .rulebook-panel {

@@ -11,35 +11,6 @@ Tasks are created here only after the related feature or improvement has been ca
 
 ## Pending
 
-### PRD-023: Revamp action-taking user flow
-
-**Source:** `PRD/new-features-and-improvements.md` - Action Flow Revamp
-
-**Status:** Pending
-
-**Outcome needed:**
-
-- Add prominent active-turn banner inside the action panel.
-- Convert action controls into a guided step-based flow.
-- Show only relevant controls for the selected action type.
-- Add clear helper and validation text for incomplete actions.
-- Make primary action buttons specific to the pending action.
-- Visually distinguish bot turns from human turns.
-- Highlight selectable gems/cards based on the active action mode.
-
-### PRD-011: Add official token-return flow
-
-**Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
-
-**Status:** Pending
-
-**Outcome needed:**
-
-- Allow actions that temporarily take a player above ten tokens.
-- Prompt the player to return tokens until they have ten.
-- Record returned tokens in the action history.
-- Apply the same behavior for bot turns.
-
 ### PRD-012: Verify card and noble data
 
 **Source:** `PRD/new-features-and-improvements.md` - Core Game Foundation
@@ -69,15 +40,15 @@ No tasks are currently in progress.
 
 ## Completed
 
-### PRD-000: Finalize Pilot 1 agenda
+### PRD-000: Finalize Version 1 agenda
 
-**Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
+**Source:** `PRD/new-features-and-improvements.md` - Version 1: Frontend-Only Playable Splendor
 
 **Status:** Completed on 2026-06-23
 
 **Outcome:**
 
-- Confirmed Pilot 1 as frontend-only and GitHub Pages friendly.
+- Confirmed Version 1 as frontend-only and GitHub Pages friendly.
 - Selected Vite + React + TypeScript with plain CSS.
 - Confirmed minimalistic and aesthetic visual direction.
 - Confirmed single-player as 1 v 1 Player vs Bot.
@@ -86,7 +57,7 @@ No tasks are currently in progress.
 
 ### PRD-001: Scaffold frontend app platform
 
-**Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
+**Source:** `PRD/new-features-and-improvements.md` - Version 1: Frontend-Only Playable Splendor
 
 **Status:** Completed on 2026-06-23
 
@@ -98,7 +69,7 @@ No tasks are currently in progress.
 
 ### PRD-002: Define first playable rule scope
 
-**Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
+**Source:** `PRD/new-features-and-improvements.md` - Version 1: Frontend-Only Playable Splendor
 
 **Status:** Completed on 2026-06-23
 
@@ -122,7 +93,7 @@ No tasks are currently in progress.
 
 ### PRD-004: Create static rulebook file and fetch contract
 
-**Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
+**Source:** `PRD/new-features-and-improvements.md` - Version 1: Frontend-Only Playable Splendor
 
 **Status:** Completed on 2026-06-23
 
@@ -134,7 +105,7 @@ No tasks are currently in progress.
 
 ### PRD-005: Build landing and mode selection flow
 
-**Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
+**Source:** `PRD/new-features-and-improvements.md` - Version 1: Frontend-Only Playable Splendor
 
 **Status:** Completed on 2026-06-23
 
@@ -170,7 +141,7 @@ No tasks are currently in progress.
 
 ### PRD-008: Implement player turn timer
 
-**Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
+**Source:** `PRD/new-features-and-improvements.md` - Version 1: Frontend-Only Playable Splendor
 
 **Status:** Completed on 2026-06-23
 
@@ -182,7 +153,7 @@ No tasks are currently in progress.
 
 ### PRD-009: Implement action history and JSON download
 
-**Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
+**Source:** `PRD/new-features-and-improvements.md` - Version 1: Frontend-Only Playable Splendor
 
 **Status:** Completed on 2026-06-23
 
@@ -239,7 +210,7 @@ No tasks are currently in progress.
 
 **Outcome:**
 
-- Replaced compact pilot card data with 90 development cards.
+- Replaced compact version card data with 90 development cards.
 - Verified tier counts are 40, 30, and 20.
 - Verified total card count is 90.
 - Rebuilt static assets for local and GitHub Pages compatibility.
@@ -312,9 +283,61 @@ No tasks are currently in progress.
 - Added stacked/piled visuals for coin holdings.
 - Ensured the holdings block fits inside the right panel without clipping.
 
+### PRD-023: Revamp action-taking user flow
+
+**Source:** `PRD/new-features-and-improvements.md` - Action Flow Revamp
+
+**Status:** Completed on 2026-06-25
+
+**Outcome:**
+
+- Added an active-turn command banner inside the action panel.
+- Reworked player actions into a guided Take 3, Take 2, Buy, and Reserve flow.
+- Showed only action-specific controls and validation helper text for the selected mode.
+- Added a single contextual confirm button for the pending action.
+- Added a bot-thinking state for automated turns.
+- Highlighted selectable cards, deck tiles, and gem choices based on the current action mode.
+
+### PRD-011: Add official token-return flow
+
+**Source:** `PRD/new-features-and-improvements.md` - Version 1: Frontend-Only Playable Splendor
+
+**Status:** Completed on 2026-06-25
+
+**Outcome:**
+
+- Token-gaining actions can temporarily take a player above ten tokens.
+- The action panel prompts the player to return enough tokens before confirm is enabled.
+- Returned tokens are restored to supply and recorded in action history details.
+- Bot turns can generate token-return choices when their selected action would exceed ten tokens.
+
+### PRD-024: Collapse recent actions and allow partial Take 3
+
+**Source:** `PRD/new-features-and-improvements.md` - Action Panel Collapsing and Token Return
+
+**Status:** Completed on 2026-06-25
+
+**Outcome:**
+
+- Recent Actions is collapsed by default.
+- Take 3 mode can confirm with one to three different selected gems.
+- Take 3 helper text and primary button labels update for partial gem-taking choices.
+
+### PRD-025: Fix game-complete action panel and final-round ending
+
+**Source:** `PRD/new-features-and-improvements.md` - Game Completion State Polish
+
+**Status:** Completed on 2026-06-25
+
+**Outcome:**
+
+- Game-complete UI now renders before bot-thinking UI.
+- Final-round winner determination waits until the last player in table order completes the current round.
+- The top bar and action panel show completed-game copy after winner determination.
+
 ### PRD-014: Add GitHub Pages deployment workflow
 
-**Source:** `PRD/new-features-and-improvements.md` - Pilot 1: Frontend-Only Playable Splendor
+**Source:** `PRD/new-features-and-improvements.md` - Version 1: Frontend-Only Playable Splendor
 
 **Status:** Completed on 2026-06-24
 

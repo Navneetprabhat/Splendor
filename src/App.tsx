@@ -3,6 +3,7 @@ import { gemLabels, gems } from "./game/data";
 import { chooseBotAction } from "./game/bot";
 import {
   applyAction,
+  canAffordCard,
   createGame,
   exportableGame,
   playerScore,
@@ -14,6 +15,7 @@ type Screen = "landing" | "rulebook" | "single" | "multi" | "game";
 type SelectedCard =
   | { source: "market"; tier: Tier; card: Card }
   | { source: "reserved"; card: Card };
+type ActionMode = "take3" | "take2" | "buy" | "reserve";
 type MovementCue = {
   id: string;
   playerId: string;
@@ -182,8 +184,12 @@ function App() {
   const [playerCount, setPlayerCount] = useState(2);
   const [names, setNames] = useState(["Player 1", "Player 2", "Player 3", "Player 4"]);
   const [game, setGame] = useState<GameState | null>(null);
+  const [actionMode, setActionMode] = useState<ActionMode>("take3");
   const [selectedTokens, setSelectedTokens] = useState<Gem[]>([]);
+  const [selectedTwoToken, setSelectedTwoToken] = useState<Gem | null>(null);
   const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null);
+  const [selectedDeck, setSelectedDeck] = useState<Tier | null>(null);
+  const [returnedTokens, setReturnedTokens] = useState<Token[]>([]);
   const [selectedPlayerIndex, setSelectedPlayerIndex] = useState(0);
   const [movementCue, setMovementCue] = useState<MovementCue | undefined>();
   const [undoStack, setUndoStack] = useState<UndoSnapshot[]>([]);
@@ -199,6 +205,19 @@ function App() {
   const activePlayer = game?.players[game.activePlayerIndex];
   const humanTurn = Boolean(activePlayer && !activePlayer.isBot && !game?.winner);
   const selectedPlayer = game?.players[selectedPlayerIndex] ?? activePlayer;
+
+  const resetActionSelection = () => {
+    setSelectedTokens([]);
+    setSelectedTwoToken(null);
+    setSelectedCard(null);
+    setSelectedDeck(null);
+    setReturnedTokens([]);
+  };
+
+  const changeActionMode = (mode: ActionMode) => {
+    setActionMode(mode);
+    resetActionSelection();
+  };
 
   const showMovementCue = (beforeAction: GameState, action: GameAction, nextActivePlayerIndex: number) => {
     const actingPlayerIndex = beforeAction.activePlayerIndex;
@@ -266,7 +285,7 @@ function App() {
       }
     }, 900);
     return () => window.clearTimeout(timeout);
-  }, [game?.turnNumber, activePlayer?.id, isTimerPaused]);
+  }, [game?.turnNumber, activePlayer?.id, game?.winner, isTimerPaused]);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}rulebook.md`)
@@ -283,7 +302,10 @@ function App() {
     lastTurnKeyRef.current = turnKeyFor(nextGame);
     setGame(nextGame);
     setSelectedTokens([]);
+    setSelectedTwoToken(null);
     setSelectedCard(null);
+    setSelectedDeck(null);
+    setActionMode("take3");
     setSelectedPlayerIndex(0);
     setUndoStack([]);
     setElapsed(0);
@@ -300,7 +322,10 @@ function App() {
     lastTurnKeyRef.current = turnKeyFor(nextGame);
     setGame(nextGame);
     setSelectedTokens([]);
+    setSelectedTwoToken(null);
     setSelectedCard(null);
+    setSelectedDeck(null);
+    setActionMode("take3");
     setSelectedPlayerIndex(0);
     setUndoStack([]);
     setElapsed(0);
@@ -315,8 +340,7 @@ function App() {
     setGame(result.game);
     if (result.ok) {
       setUndoStack((current) => [...current, { game, elapsedBeforeAction: actionElapsed }]);
-      setSelectedTokens([]);
-      setSelectedCard(null);
+      resetActionSelection();
       showMovementCue(game, action, result.game.activePlayerIndex);
     }
   };
@@ -330,8 +354,7 @@ function App() {
     lastTurnKeyRef.current = turnKeyFor(restored);
     setUndoStack((current) => current.slice(0, -1));
     setGame(restored);
-    setSelectedTokens([]);
-    setSelectedCard(null);
+    resetActionSelection();
     setMovementCue(undefined);
     setSelectedPlayerIndex(restored.activePlayerIndex);
     setElapsed(restoredElapsed);
@@ -350,13 +373,166 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
-  const selectedAction = useMemo<GameAction | undefined>(
+  const projectedTokens = useMemo(() => {
+    if (!activePlayer) return undefined;
+    const next = { ...activePlayer.tokens };
+
+    if (actionMode === "take3") {
+      selectedTokens.forEach((gem) => {
+        next[gem] += 1;
+      });
+    }
+
+    if (actionMode === "take2" && selectedTwoToken) {
+      next[selectedTwoToken] += 2;
+    }
+
+    if (actionMode === "reserve" && (selectedCard?.source === "market" || selectedDeck) && game?.supply.gold) {
+      next.gold += 1;
+    }
+
+    return next;
+  }, [actionMode, activePlayer, game?.supply.gold, selectedCard, selectedDeck, selectedTokens, selectedTwoToken]);
+
+  const returnedTokenCounts = useMemo(
     () =>
-      selectedTokens.length === 3
-        ? { type: "TAKE_THREE", colors: selectedTokens }
-        : undefined,
-    [selectedTokens],
+      returnedTokens.reduce(
+        (counts, token) => {
+          counts[token] += 1;
+          return counts;
+        },
+        {
+          diamond: 0,
+          sapphire: 0,
+          emerald: 0,
+          ruby: 0,
+          onyx: 0,
+          gold: 0,
+        } as Record<Token, number>,
+      ),
+    [returnedTokens],
   );
+
+  const requiredReturns = projectedTokens ? Math.max(0, tokenTotal(projectedTokens) - 10) : 0;
+  const returnsValid = projectedTokens
+    ? tokenOrder.every((token) => returnedTokenCounts[token] <= projectedTokens[token])
+    : returnedTokens.length === 0;
+  const returnsComplete = requiredReturns === returnedTokens.length && returnsValid;
+  const selectedReturnTokens = returnedTokens.length > 0 ? returnedTokens : undefined;
+
+  useEffect(() => {
+    if (returnedTokens.length === 0) return;
+    if (requiredReturns === 0) {
+      setReturnedTokens([]);
+      return;
+    }
+    if (returnedTokens.length > requiredReturns) {
+      setReturnedTokens((current) => current.slice(0, requiredReturns));
+    }
+  }, [requiredReturns, returnedTokens.length]);
+
+  const toggleReturnedToken = (token: Token) => {
+    const existingIndex = returnedTokens.indexOf(token);
+    if (existingIndex >= 0) {
+      setReturnedTokens((current) => current.filter((_, index) => index !== existingIndex));
+      return;
+    }
+    if (!projectedTokens || returnedTokens.length >= requiredReturns) return;
+    if (returnedTokenCounts[token] >= projectedTokens[token]) return;
+    setReturnedTokens((current) => [...current, token]);
+  };
+
+  const pendingAction = useMemo<GameAction | undefined>(() => {
+    if (!returnsComplete) return undefined;
+    if (actionMode === "take3" && selectedTokens.length > 0 && selectedTokens.length <= 3) {
+      return { type: "TAKE_THREE", colors: selectedTokens, returnedTokens: selectedReturnTokens };
+    }
+    if (actionMode === "take2" && selectedTwoToken) {
+      return { type: "TAKE_TWO", color: selectedTwoToken, returnedTokens: selectedReturnTokens };
+    }
+    if (actionMode === "buy" && selectedCard) {
+      return selectedCard.source === "market"
+        ? { type: "BUY_MARKET", tier: selectedCard.tier, cardId: selectedCard.card.id }
+        : { type: "BUY_RESERVED", cardId: selectedCard.card.id };
+    }
+    if (actionMode === "reserve") {
+      if (selectedCard?.source === "market") {
+        return {
+          type: "RESERVE_MARKET",
+          tier: selectedCard.tier,
+          cardId: selectedCard.card.id,
+          returnedTokens: selectedReturnTokens,
+        };
+      }
+      if (selectedDeck) return { type: "RESERVE_DECK", tier: selectedDeck, returnedTokens: selectedReturnTokens };
+    }
+    return undefined;
+  }, [
+    actionMode,
+    returnsComplete,
+    selectedCard,
+    selectedDeck,
+    selectedReturnTokens,
+    selectedTokens,
+    selectedTwoToken,
+  ]);
+
+  const actionHint = useMemo(() => {
+    if (!humanTurn) {
+      return activePlayer?.isBot ? `${activePlayer.name} is thinking...` : "Game is complete.";
+    }
+    if (requiredReturns > 0 && !returnsValid) {
+      return "Adjust returned tokens to match your projected holdings.";
+    }
+    if (requiredReturns > 0 && !returnsComplete) {
+      return `Return ${requiredReturns - returnedTokens.length} token${
+        requiredReturns - returnedTokens.length === 1 ? "" : "s"
+      } before confirming.`;
+    }
+    if (actionMode === "take3") {
+      return selectedTokens.length === 0
+        ? "Select 1 to 3 different gem colors."
+        : `Ready to take ${selectedTokens.length} gem${selectedTokens.length === 1 ? "" : "s"}.`;
+    }
+    if (actionMode === "take2") {
+      return selectedTwoToken ? `Ready to take 2 ${gemLabels[selectedTwoToken]}.` : "Select one color with at least 4 gems in supply.";
+    }
+    if (actionMode === "buy") {
+      return selectedCard ? "Review the selected card, then confirm buy." : "Select an affordable card from the table or your reserved cards.";
+    }
+    if (selectedDeck) return `Ready to reserve a level ${selectedDeck} deck card.`;
+    return selectedCard ? "Review the selected card, then confirm reserve." : "Select a visible card or deck tile to reserve.";
+  }, [
+    actionMode,
+    activePlayer,
+    humanTurn,
+    requiredReturns,
+    returnedTokens.length,
+    returnsComplete,
+    returnsValid,
+    selectedCard,
+    selectedDeck,
+    selectedTokens.length,
+    selectedTwoToken,
+  ]);
+
+  const primaryLabel = (() => {
+    if (actionMode === "take3") {
+      const count = selectedTokens.length || 3;
+      return `Take ${count} gem${count === 1 ? "" : "s"}`;
+    }
+    if (actionMode === "take2") return selectedTwoToken ? `Take 2 ${gemLabels[selectedTwoToken]}` : "Take 2 gems";
+    if (actionMode === "buy") return "Buy selected card";
+    if (selectedDeck) return `Reserve level ${selectedDeck} deck`;
+    return "Reserve selected card";
+  })();
+
+  const actionModeName = (() => {
+    if (actionMode === "take3") return "Take 3";
+    if (actionMode === "take2") return "Take 2 same";
+    if (actionMode === "buy") return "Buy";
+    return "Reserve";
+  })();
 
   if (screen === "rulebook") {
     return (
@@ -446,8 +622,8 @@ function App() {
       <main className="game-shell">
         <header className="game-topbar">
           <div className="turn-status">
-            <strong>Turn {game.round}.{game.activePlayerIndex + 1}</strong>
-            <span>{activePlayer.isBot ? `${activePlayer.name} move` : "your move"}</span>
+            <strong>{game.winner ? "Game Complete" : `Turn ${game.round}.${game.activePlayerIndex + 1}`}</strong>
+            <span>{game.winner ? "winner decided" : activePlayer.isBot ? `${activePlayer.name} move` : "your move"}</span>
           </div>
           <div className="top-nobles">
             <span>nobles</span>
@@ -481,142 +657,222 @@ function App() {
 
         <section className="board-layout">
           <aside className="panel action-panel" ref={actionPanelRef}>
-            <div className="action-head">
-              <h2>Action</h2>
-              <span>{humanTurn ? "Your turn" : "Bot turn"}</span>
+            <div className={game.winner ? "turn-command complete-turn" : activePlayer.isBot ? "turn-command bot-turn" : "turn-command"}>
+              <div>
+                <span>{game.winner ? "Game complete" : activePlayer.isBot ? "Bot turn" : "Your turn"}</span>
+                <strong>{game.winner ? "Final score" : activePlayer.name}</strong>
+              </div>
+              <div className="turn-command-meta">
+                <span>{game.winner ? "Ended" : `Turn ${game.round}.${game.activePlayerIndex + 1}`}</span>
+                <strong>{elapsed}s</strong>
+              </div>
             </div>
 
-            <div className="action-mode-grid">
-              <button className="mode-button active">Pick 3</button>
-              <button className="mode-button">Pick 2 same</button>
-              <button className="mode-button">Buy</button>
-              <button className="mode-button">Reserve</button>
-            </div>
-
-            <section className="action-block">
-              <div className="take-grid">
-              {gems.map((gem) => (
-                <button
-                  className={selectedTokens.includes(gem) ? `gem-button selected ${gem}` : `gem-button ${gem}`}
-                  disabled={!humanTurn || game.supply[gem] <= 0}
-                  title={gemLabels[gem]}
-                  key={gem}
-                  onClick={() =>
-                    setSelectedTokens((current) =>
-                      current.includes(gem)
-                        ? current.filter((item) => item !== gem)
-                        : current.length < 3
-                          ? [...current, gem]
-                          : current,
-                    )
-                  }
-                >
-                  <span className={`coin token-${gem}`} />
-                  <strong>{game.supply[gem]}</strong>
-                </button>
-              ))}
-              </div>
-              <button
-                className="primary-button compact-command"
-                disabled={!humanTurn || !selectedAction}
-                onClick={() => selectedAction && perform(selectedAction)}
-              >
-                Take gems
-              </button>
-              <div className="two-grid">
-              {gems.map((gem) => (
-                <button
-                  className="two-token-button"
-                  disabled={!humanTurn || game.supply[gem] < 4}
-                  title={`Take two ${gemLabels[gem]}`}
-                  key={gem}
-                  onClick={() => perform({ type: "TAKE_TWO", color: gem })}
-                >
-                  <span className={`coin token-${gem}`} />
-                  <span className={`coin token-${gem}`} />
-                </button>
-              ))}
-              </div>
-            </section>
-
-            <section className="action-block selected-card-block">
-              <h3>Selected Card</h3>
-              {selectedCard ? (
-                <div className={`selected-card-preview ${selectedCard.card.color}`}>
-                  <div>
-                    <strong>{selectedCard.card.points}</strong>
-                    <span>{selectedCard.source === "market" ? `Level ${selectedCard.tier}` : "Reserved"}</span>
-                  </div>
-                  <Cost card={selectedCard.card} />
+            {game.winner ? (
+              <section className="action-block game-complete">
+                <strong>{game.winner.message}</strong>
+                <p>The final round is complete.</p>
+              </section>
+            ) : activePlayer.isBot ? (
+              <section className="action-block bot-thinking">
+                <div className="thinking-dots" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
                 </div>
-              ) : (
-                <p>Select a card on the table.</p>
-              )}
-              <div className="selected-actions">
-                <button
-                  className="icon-command buy-command"
-                  disabled={!humanTurn || !selectedCard}
-                  onClick={() => {
-                    if (!selectedCard) return;
-                    if (selectedCard.source === "market") {
-                      perform({
-                        type: "BUY_MARKET",
-                        tier: selectedCard.tier,
-                        cardId: selectedCard.card.id,
-                      });
-                    } else {
-                      perform({ type: "BUY_RESERVED", cardId: selectedCard.card.id });
-                    }
-                  }}
-                  title="Buy selected card"
-                >
-                  <span className="command-card-icon" />
-                  <span>Buy</span>
-                </button>
-                <button
-                  className="icon-command reserve-command"
-                  disabled={!humanTurn || selectedCard?.source !== "market"}
-                  onClick={() => {
-                    if (selectedCard?.source === "market") {
-                      perform({
-                        type: "RESERVE_MARKET",
-                        tier: selectedCard.tier,
-                        cardId: selectedCard.card.id,
-                      });
-                    }
-                  }}
-                  title="Reserve selected card"
-                >
-                  <span className="command-card-icon outline" />
-                  <span>Reserve</span>
-                </button>
-              </div>
-            </section>
+                <strong>{activePlayer.name} is choosing an action.</strong>
+                <p>The board will update after the bot completes its move.</p>
+              </section>
+            ) : (
+              <>
+                <div className="action-mode-grid guided">
+                  {[
+                    ["take3", "Take 3"],
+                    ["take2", "Take 2"],
+                    ["buy", "Buy"],
+                    ["reserve", "Reserve"],
+                  ].map(([mode, label]) => (
+                    <button
+                      className={actionMode === mode ? "mode-button active" : "mode-button"}
+                      key={mode}
+                      onClick={() => changeActionMode(mode as ActionMode)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <section className="action-block guided-step">
+                  <div className="step-heading">
+                    <span>{actionModeName}</span>
+                    <strong>{actionHint}</strong>
+                  </div>
+
+                  {actionMode === "take3" && (
+                    <>
+                      <div className="take-grid">
+                        {gems.map((gem) => (
+                          <button
+                            className={selectedTokens.includes(gem) ? `gem-button selected ${gem}` : `gem-button ${gem}`}
+                            disabled={!humanTurn || game.supply[gem] <= 0}
+                            title={gemLabels[gem]}
+                            key={gem}
+                            onClick={() =>
+                              setSelectedTokens((current) =>
+                                current.includes(gem)
+                                  ? current.filter((item) => item !== gem)
+                                  : current.length < 3
+                                    ? [...current, gem]
+                                    : current,
+                              )
+                            }
+                          >
+                            <span className={`coin token-${gem}`} />
+                            <strong>{game.supply[gem]}</strong>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="selection-preview">
+                        {selectedTokens.length === 0 && <span>No gems selected</span>}
+                        {selectedTokens.map((gem) => (
+                          <span className={`coin token-${gem}`} key={gem} title={gemLabels[gem]} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {actionMode === "take2" && (
+                    <div className="two-grid guided-two">
+                      {gems.map((gem) => (
+                        <button
+                          className={selectedTwoToken === gem ? "two-token-button selected" : "two-token-button"}
+                          disabled={!humanTurn || game.supply[gem] < 4}
+                          title={
+                            game.supply[gem] >= 4
+                              ? `Take two ${gemLabels[gem]}`
+                              : `${gemLabels[gem]} needs at least 4 in supply`
+                          }
+                          key={gem}
+                          onClick={() => setSelectedTwoToken(gem)}
+                        >
+                          <span className={`coin token-${gem}`} />
+                          <span className={`coin token-${gem}`} />
+                          <strong>{game.supply[gem]}</strong>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {(actionMode === "buy" || actionMode === "reserve") && (
+                    <div className="selection-card-area">
+                      {selectedDeck && (
+                        <div className="selection-summary">
+                          <strong>Level {selectedDeck} deck</strong>
+                          <span>Top card will be reserved hidden.</span>
+                        </div>
+                      )}
+                      {selectedCard ? (
+                        <div className={`selected-card-preview ${selectedCard.card.color}`}>
+                          <div>
+                            <strong>{selectedCard.card.points}</strong>
+                            <span>{selectedCard.source === "market" ? `Level ${selectedCard.tier}` : "Reserved"}</span>
+                          </div>
+                          <Cost card={selectedCard.card} />
+                        </div>
+                      ) : !selectedDeck ? (
+                        <p>{actionMode === "buy" ? "Select a card to buy." : "Select a card or deck tile to reserve."}</p>
+                      ) : null}
+                    </div>
+                  )}
+                </section>
+
+                {requiredReturns > 0 && projectedTokens && (
+                  <section className="action-block return-block">
+                    <div className="step-heading">
+                      <span>Return tokens</span>
+                      <strong>
+                        Choose {requiredReturns} token{requiredReturns === 1 ? "" : "s"} to return.
+                      </strong>
+                    </div>
+                    <div className="return-token-grid">
+                      {tokenOrder.map((token) => {
+                        const selectedCount = returnedTokenCounts[token];
+                        const availableCount = projectedTokens[token];
+                        return (
+                          <button
+                            className={selectedCount > 0 ? "return-token selected" : "return-token"}
+                            disabled={
+                              (availableCount === 0 && selectedCount === 0) ||
+                              (returnedTokens.length >= requiredReturns && selectedCount === 0)
+                            }
+                            key={token}
+                            onClick={() => toggleReturnedToken(token)}
+                            title={`Return ${titleCase(token)} token`}
+                            type="button"
+                          >
+                            <span className={`coin token-${token}`} />
+                            <strong>{selectedCount > 0 ? selectedCount : availableCount}</strong>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <small>
+                      Selected {returnedTokens.length}/{requiredReturns}
+                    </small>
+                  </section>
+                )}
+
+                <section className="action-footer">
+                  <button
+                    className="primary-button compact-command"
+                    disabled={!pendingAction}
+                    onClick={() => pendingAction && perform(pendingAction)}
+                  >
+                    {primaryLabel}
+                  </button>
+                  <button className="ghost-button compact-clear" onClick={resetActionSelection}>
+                    Clear
+                  </button>
+                  <small>{pendingAction ? "Ready to confirm." : actionHint}</small>
+                </section>
+              </>
+            )}
 
             <h2>Reserved</h2>
             {activePlayer.reserved.length === 0 && <p>No reserved cards.</p>}
-            {activePlayer.reserved.map((card) => (
-              <CardView
-                card={card}
-                compact
-                disabled={!humanTurn}
-                selected={selectedCard?.source === "reserved" && selectedCard.card.id === card.id}
-                key={card.id}
-                onSelect={() => setSelectedCard({ source: "reserved", card })}
-              />
-            ))}
+            {activePlayer.reserved.map((card) => {
+              const canBuy = canAffordCard(activePlayer, card);
+              return (
+                <CardView
+                  card={card}
+                  compact
+                  disabled={!humanTurn || actionMode !== "buy" || !canBuy}
+                  selected={selectedCard?.source === "reserved" && selectedCard.card.id === card.id}
+                  selectable={humanTurn && actionMode === "buy" && canBuy}
+                  key={card.id}
+                  onSelect={() => {
+                    if (actionMode === "buy" && canBuy) {
+                      setSelectedDeck(null);
+                      setSelectedCard({ source: "reserved", card });
+                    }
+                  }}
+                />
+              );
+            })}
 
-            <h2>Recent Actions</h2>
-            <div className="action-log">
-              {game.log.slice(-6).reverse().map((record) => (
-                <article key={record.id}>
-                  <strong>{record.playerName}</strong>
-                  <span>{record.actionType.replaceAll("_", " ")}</span>
-                  <small>{record.elapsedSeconds}s</small>
-                </article>
-              ))}
-              {game.log.length === 0 && <p>No actions yet.</p>}
-            </div>
+            <details className="recent-actions">
+              <summary>Recent Actions</summary>
+              <div className="action-log">
+                {game.log.slice(-6).reverse().map((record) => (
+                  <article key={record.id}>
+                    <strong>{record.playerName}</strong>
+                    <span>{record.actionType.replaceAll("_", " ")}</span>
+                    <small>{record.elapsedSeconds}s</small>
+                  </article>
+                ))}
+                {game.log.length === 0 && <p>No actions yet.</p>}
+              </div>
+            </details>
           </aside>
 
           <section className="table-area" ref={tableAreaRef}>
@@ -630,19 +886,49 @@ function App() {
                   <div className="card-grid">
                     <DeckTile
                       count={game.decks[tier].length}
-                      disabled={!humanTurn || activePlayer.reserved.length >= 3 || game.decks[tier].length === 0}
-                      onReserve={() => perform({ type: "RESERVE_DECK", tier })}
+                      disabled={
+                        !humanTurn ||
+                        actionMode !== "reserve" ||
+                        activePlayer.reserved.length >= 3 ||
+                        game.decks[tier].length === 0
+                      }
+                      selected={selectedDeck === tier}
+                      selectable={
+                        humanTurn &&
+                        actionMode === "reserve" &&
+                        activePlayer.reserved.length < 3 &&
+                        game.decks[tier].length > 0
+                      }
+                      onReserve={() => {
+                        if (actionMode === "reserve") {
+                          setSelectedCard(null);
+                          setSelectedDeck(tier);
+                        }
+                      }}
                       tier={tier}
                     />
-                    {game.market[tier].map((card) => (
-                      <CardView
-                        card={card}
-                        disabled={!humanTurn}
-                        selected={selectedCard?.source === "market" && selectedCard.card.id === card.id}
-                        key={card.id}
-                        onSelect={() => setSelectedCard({ source: "market", tier, card })}
-                      />
-                    ))}
+                    {game.market[tier].map((card) => {
+                      const buyable = canAffordCard(activePlayer, card);
+                      const canSelectForBuy = humanTurn && actionMode === "buy" && buyable;
+                      const canSelectForReserve =
+                        humanTurn && actionMode === "reserve" && activePlayer.reserved.length < 3;
+                      return (
+                        <CardView
+                          card={card}
+                          disabled={!canSelectForBuy && !canSelectForReserve}
+                          selected={selectedCard?.source === "market" && selectedCard.card.id === card.id}
+                          selectable={canSelectForBuy || canSelectForReserve}
+                          unavailable={humanTurn && actionMode === "buy" && !buyable}
+                          key={card.id}
+                          onSelect={() => {
+                            if (canSelectForBuy || canSelectForReserve) {
+                              setSelectedDeck(null);
+                              setSelectedCard({ source: "market", tier, card });
+                            }
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                 </section>
               ))}
@@ -706,7 +992,7 @@ function App() {
     <main className="landing">
       <img className="hero-image" src={`${import.meta.env.BASE_URL}hero-splendor.webp`} alt="" />
       <section className="landing-content">
-        <p className="eyebrow">A browser board game pilot</p>
+        <p className="eyebrow">A browser board game v1</p>
         <h1>Welcome to Splendor</h1>
         <p>
           If you are a new player, see the{" "}
@@ -733,21 +1019,32 @@ function CardView({
   compact = false,
   disabled = false,
   selected = false,
+  selectable = false,
+  unavailable = false,
   onSelect,
 }: {
   card: Card;
   compact?: boolean;
   disabled?: boolean;
   selected?: boolean;
+  selectable?: boolean;
+  unavailable?: boolean;
   onSelect: () => void;
 }) {
+  const classes = [
+    "game-card",
+    compact ? "compact" : "",
+    card.color,
+    selected ? "selected-card" : "",
+    selectable ? "selectable-card" : "",
+    unavailable ? "unavailable-card" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <button
-      className={
-        compact
-          ? `game-card compact ${card.color}${selected ? " selected-card" : ""}`
-          : `game-card ${card.color}${selected ? " selected-card" : ""}`
-      }
+      className={classes}
       disabled={disabled}
       onClick={onSelect}
       title={`${card.points} prestige ${gemLabels[card.color]} card`}
@@ -765,16 +1062,27 @@ function DeckTile({
   count,
   disabled,
   onReserve,
+  selectable = false,
+  selected = false,
   tier,
 }: {
   count: number;
   disabled: boolean;
   onReserve: () => void;
+  selectable?: boolean;
+  selected?: boolean;
   tier: Tier;
 }) {
   return (
     <button
-      className={`deck-tile tier-${tier}`}
+      className={[
+        "deck-tile",
+        `tier-${tier}`,
+        selectable ? "selectable-card" : "",
+        selected ? "selected-card" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       disabled={disabled}
       onClick={onReserve}
       title={`Reserve a level ${tier} deck card`}

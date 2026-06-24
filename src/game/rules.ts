@@ -49,6 +49,47 @@ const tokenSupplyFor = (playerCount: number): Tokens => {
 const totalTokens = (tokens: Tokens): number =>
   Object.values(tokens).reduce((sum, count) => sum + count, 0);
 
+const countReturnedTokens = (tokens: Token[] = []) =>
+  tokens.reduce(
+    (counts, token) => {
+      counts[token] += 1;
+      return counts;
+    },
+    emptyTokens(),
+  );
+
+const applyReturnedTokens = (
+  player: Player,
+  supply: Tokens,
+  returnedTokens: Token[] = [],
+): string | undefined => {
+  const excess = totalTokens(player.tokens) - 10;
+  if (excess <= 0) {
+    return returnedTokens.length > 0 ? "No tokens need to be returned." : undefined;
+  }
+
+  if (returnedTokens.length !== excess) {
+    return `Return exactly ${excess} token${excess === 1 ? "" : "s"} before ending the turn.`;
+  }
+
+  const returnedCounts = countReturnedTokens(returnedTokens);
+  for (const token of [...gems, "gold"] as Token[]) {
+    if (returnedCounts[token] > player.tokens[token]) {
+      return "A player can only return tokens they hold after taking tokens.";
+    }
+  }
+
+  for (const token of [...gems, "gold"] as Token[]) {
+    player.tokens[token] -= returnedCounts[token];
+    supply[token] += returnedCounts[token];
+  }
+
+  return undefined;
+};
+
+const withReturnedTokenDetails = (details: Record<string, unknown>, returnedTokens: Token[] = []) =>
+  returnedTokens.length > 0 ? { ...details, returnedTokens } : details;
+
 export const playerScore = (player: Player): number =>
   player.purchased.reduce((sum, card) => sum + card.points, 0) +
   player.nobles.reduce((sum, noble) => sum + noble.points, 0);
@@ -126,17 +167,13 @@ const finishTurn = (
   state.log.push(record);
 
   const score = playerScore(player);
+  const isLastPlayerInRound = state.activePlayerIndex === state.players.length - 1;
   if (score >= 15 && state.finalRoundTargetTurns === undefined) {
-    state.finalRoundTargetTurns = Math.max(
-      ...state.players.map((candidate) => candidate.turnsTaken),
-    );
+    state.finalRoundTargetTurns = player.turnsTaken;
     state.message = `${player.name} reached 15 prestige. Finish the round.`;
   }
 
-  if (
-    state.finalRoundTargetTurns !== undefined &&
-    state.players.every((candidate) => candidate.turnsTaken >= state.finalRoundTargetTurns!)
-  ) {
+  if (state.finalRoundTargetTurns !== undefined && isLastPlayerInRound) {
     const winner = determineWinner(state.players);
     state.winner = winner;
     state.message = winner.message;
@@ -247,20 +284,26 @@ export const applyAction = (
 
   if (action.type === "TAKE_THREE") {
     const unique = [...new Set(action.colors)];
-    if (unique.length !== 3) return fail("Choose three different gem colors.");
+    if (unique.length !== action.colors.length) return fail("Choose different gem colors.");
+    if (unique.length < 1 || unique.length > 3) return fail("Choose one to three different gem colors.");
     if (unique.some((gem) => state.supply[gem] <= 0)) {
       return fail("One of those gem colors is not available.");
-    }
-    if (totalTokens(player.tokens) + 3 > 10) {
-      return fail("A player may not end a turn with more than ten tokens.");
     }
     unique.forEach((gem) => {
       player.tokens[gem] += 1;
       state.supply[gem] -= 1;
     });
-    state.message = `${player.name} took three gems.`;
+    const returnError = applyReturnedTokens(player, state.supply, action.returnedTokens);
+    if (returnError) return fail(returnError);
+    const takenCount = unique.length;
+    state.message = `${player.name} took ${takenCount} gem${takenCount === 1 ? "" : "s"}.`;
     return {
-      game: finishTurn(state, action, { colors: unique }, elapsedSeconds),
+      game: finishTurn(
+        state,
+        action,
+        withReturnedTokenDetails({ colors: unique }, action.returnedTokens),
+        elapsedSeconds,
+      ),
       ok: true,
       message: state.message,
     };
@@ -270,14 +313,18 @@ export const applyAction = (
     if (state.supply[action.color] < 4) {
       return fail("Two of the same gem can only be taken when at least four are available.");
     }
-    if (totalTokens(player.tokens) + 2 > 10) {
-      return fail("A player may not end a turn with more than ten tokens.");
-    }
     player.tokens[action.color] += 2;
     state.supply[action.color] -= 2;
+    const returnError = applyReturnedTokens(player, state.supply, action.returnedTokens);
+    if (returnError) return fail(returnError);
     state.message = `${player.name} took two ${action.color}.`;
     return {
-      game: finishTurn(state, action, { color: action.color }, elapsedSeconds),
+      game: finishTurn(
+        state,
+        action,
+        withReturnedTokenDetails({ color: action.color }, action.returnedTokens),
+        elapsedSeconds,
+      ),
       ok: true,
       message: state.message,
     };
@@ -287,17 +334,21 @@ export const applyAction = (
     if (player.reserved.length >= 3) return fail("A player can reserve at most three cards.");
     const card = removeMarketCard(state, action.tier, action.cardId);
     if (!card) return fail("That card is no longer available.");
-    if (state.supply.gold > 0 && totalTokens(player.tokens) + 1 > 10) {
-      return fail("Reserve would exceed the ten-token limit.");
-    }
     player.reserved.push(card);
     if (state.supply.gold > 0) {
       player.tokens.gold += 1;
       state.supply.gold -= 1;
     }
+    const returnError = applyReturnedTokens(player, state.supply, action.returnedTokens);
+    if (returnError) return fail(returnError);
     state.message = `${player.name} reserved ${card.name}.`;
     return {
-      game: finishTurn(state, action, { cardId: card.id, cardName: card.name }, elapsedSeconds),
+      game: finishTurn(
+        state,
+        action,
+        withReturnedTokenDetails({ cardId: card.id, cardName: card.name }, action.returnedTokens),
+        elapsedSeconds,
+      ),
       ok: true,
       message: state.message,
     };
@@ -307,20 +358,22 @@ export const applyAction = (
     if (player.reserved.length >= 3) return fail("A player can reserve at most three cards.");
     const card = state.decks[action.tier].shift();
     if (!card) return fail("That deck is empty.");
-    if (state.supply.gold > 0 && totalTokens(player.tokens) + 1 > 10) {
-      return fail("Reserve would exceed the ten-token limit.");
-    }
     player.reserved.push(card);
     if (state.supply.gold > 0) {
       player.tokens.gold += 1;
       state.supply.gold -= 1;
     }
+    const returnError = applyReturnedTokens(player, state.supply, action.returnedTokens);
+    if (returnError) return fail(returnError);
     state.message = `${player.name} reserved a deck card.`;
     return {
       game: finishTurn(
         state,
         action,
-        { tier: action.tier, cardId: card.id, cardName: card.name, hiddenSource: true },
+        withReturnedTokenDetails(
+          { tier: action.tier, cardId: card.id, cardName: card.name, hiddenSource: true },
+          action.returnedTokens,
+        ),
         elapsedSeconds,
       ),
       ok: true,

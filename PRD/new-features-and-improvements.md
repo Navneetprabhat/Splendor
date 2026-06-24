@@ -12,13 +12,13 @@ This file is the intake area for product ideas before they become implementation
 
 ## Proposed Features
 
-### Pilot 1: Frontend-Only Playable Splendor
+### Version 1: Frontend-Only Playable Splendor
 
 **Status:** Approved for planning
 
-Create the first pilot version of Splendor as a frontend-only GitHub Pages app. The pilot should support single-player and multiplayer setup, official Splendor rule handling, a rulebook page fetched from the repo, player timers, and downloadable action history.
+Create Version 1 of Splendor as a frontend-only GitHub Pages app. Version 1 should support single-player and multiplayer setup, official Splendor rule handling, a rulebook page fetched from the repo, player timers, and downloadable action history.
 
-**Pilot goals:**
+**Version 1 goals:**
 
 - Establish a frontend-only technical foundation that can be hosted on GitHub Pages.
 - Build the official board game rule model from the start.
@@ -27,7 +27,7 @@ Create the first pilot version of Splendor as a frontend-only GitHub Pages app. 
 - Track each player's turn time in seconds.
 - Record player actions and allow the action history to be downloaded as JSON.
 
-**Pilot 1 scope:**
+**Version 1 scope:**
 
 - Frontend-only app, deployable to GitHub Pages.
 - Tech stack: Vite + React + TypeScript with plain CSS.
@@ -52,14 +52,14 @@ Create the first pilot version of Splendor as a frontend-only GitHub Pages app. 
   - Can be downloaded as a JSON file.
 - Official Splendor rules from the first implementation.
 
-**Out of scope for first pilot:**
+**Out of scope for version 1:**
 
 - Backend services.
 - Online matchmaking or networked multiplayer.
 - Account systems.
 - Persistent save games.
 - Analytics.
-- Production-grade AI. Difficulty can start with progressively better heuristics if full strategy is too large for Pilot 1.
+- Production-grade AI. Difficulty can start with progressively better heuristics if full strategy is too large for Version 1.
 
 **Acceptance criteria draft:**
 
@@ -79,11 +79,11 @@ Create the first pilot version of Splendor as a frontend-only GitHub Pages app. 
 
 ### Core Game Foundation
 
-**Status:** Approved for Pilot 1 planning
+**Status:** Approved for Version 1 planning
 
 Build the basic Splendor game foundation.
 
-**Confirmed for Pilot 1:**
+**Confirmed for Version 1:**
 
 - The first version is a browser frontend hosted on GitHub Pages.
 - The selected stack is Vite + React + TypeScript with plain CSS.
@@ -99,11 +99,11 @@ Build the basic Splendor game foundation.
 
 ### Single-Player Mode
 
-**Status:** Approved for Pilot 1 planning
+**Status:** Approved for Version 1 planning
 
 Allow one human player to play against one or more computer-controlled opponents.
 
-**Confirmed for Pilot 1:**
+**Confirmed for Version 1:**
 
 - The user chooses opponent difficulty from Easy, Medium, and Hard.
 - Single-player mode is 1 v 1: Player vs Bot.
@@ -113,11 +113,11 @@ Allow one human player to play against one or more computer-controlled opponents
 
 ### Multiplayer Mode
 
-**Status:** Approved for Pilot 1 planning
+**Status:** Approved for Version 1 planning
 
 Support multiple human players.
 
-**Confirmed for Pilot 1:**
+**Confirmed for Version 1:**
 
 - Multiplayer is local in-browser setup, with no backend.
 - The setup flow asks for number of players and player names.
@@ -132,7 +132,7 @@ Add automated players that can participate in games.
 **Notes to clarify:**
 
 - Agent type and difficulty levels.
-- Whether agents are part of the first playable release or a later milestone.
+- Whether agents are part of the version 1 release or a later milestone.
 
 ## Improvements
 
@@ -185,7 +185,7 @@ Align the in-game board more closely with the provided mockup while keeping the 
 
 **Status:** Approved
 
-Replace the compact pilot development-card dataset with the full base Splendor development deck.
+Replace the compact version development-card dataset with the full base Splendor development deck.
 
 **Requirements:**
 
@@ -230,7 +230,7 @@ Improve the in-game board interaction details so turn order, player inspection, 
 
 **Status:** Approved
 
-Improve board readability and control ergonomics for the next pilot iteration.
+Improve board readability and control ergonomics for the next version iteration.
 
 **Requirements:**
 
@@ -363,16 +363,54 @@ Revamp the action-taking flow so the player always understands whose turn it is,
 - Board cards and gems visually indicate when they are selectable.
 - The flow remains compact enough for the existing desktop board layout.
 
+### Action Panel Collapsing and Token Return
+
+**Status:** Approved
+
+Reduce action-panel clutter and support the official ten-token limit with an explicit return-token choice when a token-gaining action would exceed ten tokens.
+
+**Requirements:**
+
+- Recent actions should be collapsed by default.
+- Take 3 mode should allow confirming with one, two, or three different gems when the player chooses fewer or the supply does not support three useful choices.
+- If a token-gaining action would leave the player above ten tokens, the player should be prompted to return enough tokens before the action can be confirmed.
+- Returned tokens should be recorded in the action history details.
+
+**Acceptance criteria:**
+
+- Recent actions do not take vertical action-panel space until expanded.
+- Take 3 can complete with one to three selected different available gems.
+- A player with eight tokens can select three gems, choose one token to return, and complete the turn with ten tokens.
+- The return-token choice updates supply and player holdings correctly.
+
+### Game Completion State Polish
+
+**Status:** Approved
+
+Fix the final-round and game-complete display so the app clearly distinguishes active bot turns from the completed game state.
+
+**Requirements:**
+
+- The action panel must show a game-complete state after a winner is determined, even if the last active player is a bot.
+- Reaching 15 prestige should trigger the final round but should not display as a completed game until the table round is finished.
+- Winner determination should run after the last player in the current table round completes their action.
+
+**Acceptance criteria:**
+
+- After the game ends, the action panel does not show "Bot is choosing an action."
+- If a non-final player reaches 15 prestige, remaining players in that round still receive their turns.
+- If the final player in table order reaches or completes after final round trigger, the winner is shown immediately.
+
 ## Decision Log
 
 | Date | Decision | Reason |
 | --- | --- | --- |
 | 2026-06-23 | Create PRD-first workflow before implementation. | Keeps feature discussion, tasks, and implementation aligned. |
-| 2026-06-23 | Start with a first pilot agenda before implementation. | Keeps the first build small, playable, and useful for validating the core loop. |
-| 2026-06-23 | Pilot 1 will be frontend-only and hosted on GitHub Pages. | Avoids backend scope and keeps deployment simple. |
-| 2026-06-23 | Pilot 1 includes both single-player and local multiplayer setup. | Validates the two main play paths from the beginning. |
-| 2026-06-23 | Pilot 1 should model official board game rules from the start. | Prevents a throwaway rules model and makes later improvements safer. |
-| 2026-06-23 | Use Vite + React + TypeScript with plain CSS for Pilot 1. | Provides a clean frontend-only setup that can still grow. |
+| 2026-06-23 | Start with a version 1 agenda before implementation. | Keeps the first build small, playable, and useful for validating the core loop. |
+| 2026-06-23 | Version 1 will be frontend-only and hosted on GitHub Pages. | Avoids backend scope and keeps deployment simple. |
+| 2026-06-23 | Version 1 includes both single-player and local multiplayer setup. | Validates the two main play paths from the beginning. |
+| 2026-06-23 | Version 1 should model official board game rules from the start. | Prevents a throwaway rules model and makes later improvements safer. |
+| 2026-06-23 | Use Vite + React + TypeScript with plain CSS for Version 1. | Provides a clean frontend-only setup that can still grow. |
 | 2026-06-23 | Use a minimalistic and aesthetic visual direction. | Keeps the first app focused, readable, and polished. |
 | 2026-06-23 | Single-player mode is 1 v 1 Player vs Bot. | Keeps the first bot experience clear and manageable. |
 | 2026-06-23 | Multiplayer supports 2 to 4 players for now. | Matches the official base game player count. |
@@ -385,3 +423,5 @@ Revamp the action-taking flow so the player always understands whose turn it is,
 | 2026-06-24 | Use a reference-style holdings panel. | Makes coin/card totals easier to scan and sum during play. |
 | 2026-06-25 | Use stacked holdings markers. | Makes owned coins and cards look more tangible while reducing visual confusion. |
 | 2026-06-25 | Revamp action-taking as a guided command center. | The current toolbox-style action panel does not make turn ownership or next steps clear enough. |
+| 2026-06-25 | Collapse recent actions by default and add explicit token return. | Keeps the action panel compact while allowing legal choices that temporarily exceed ten tokens. |
+| 2026-06-25 | Show game-complete state before bot-turn state. | Prevents completed games from looking like a bot is still thinking. |
